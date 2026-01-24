@@ -3,73 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agentes Colaborativos IA</title>
+    <title>Exploração Colaborativa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🤖 Exploração Colaborativa - Agentes IA</h1>
-            <p>Projeto de Inteligência Artificial 2024/2025</p>
-        </header>
-
-        <div class="painel-config">
-            <h2>⚙️ Configuração</h2>
+    <div class="app">
+        <div class="main-content">
+            <h1>Exploração Colaborativa</h1>
             
-            <div class="secao">
-                <h3>Abordagem</h3>
-                <label><input type="radio" name="abordagem" value="A" checked> <strong>A:</strong> >50% tesouros</label>
-                <label><input type="radio" name="abordagem" value="B"> <strong>B:</strong> Exploração completa</label>
-                <label><input type="radio" name="abordagem" value="C"> <strong>C:</strong> Encontrar bandeira</label>
+            <div class="legend">
+                🌸 Grupo 1 - Baseline | 💎 Grupo 2 - Aprendizagem | 🌿 Grupo 3 - Comunicação
             </div>
 
-            <div class="secao">
-                <h3>Número de Agentes: <span id="num-valor">3</span></h3>
-                <input type="range" id="num-agentes" min="1" max="10" value="3">
-            </div>
-
-            <div class="secao">
-                <h3>Bombas: <span id="bombas-valor">50%</span></h3>
-                <input type="range" id="percentagem-bombas" min="0" max="100" step="5" value="50">
-            </div>
-
-            <div class="grupos">
-                <div class="grupo">
-                    <h3>Grupo 1 - Baseline</h3>
-                    <p>BFS Puro</p>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Abordagem:</label>
+                    <div class="btn-group">
+                        <button class="mini-btn btn-a active" data-value="A">A: >50% tesouros</button>
+                        <button class="mini-btn btn-b" data-value="B">B: Exploração completa</button>
+                        <button class="mini-btn btn-c" data-value="C">C: Encontrar bandeira</button>
+                    </div>
                 </div>
 
-                <div class="grupo">
-                    <h3>Grupo 2</h3>
-                    <label><input type="checkbox" name="g2" value="SVM"> SVM</label>
-                    <label><input type="checkbox" name="g2" value="ARVORE_DECISAO"> Árvore</label>
-                    <label><input type="checkbox" name="g2" value="PERCEPTRON"> Perceptron</label>
-                    <label><input type="checkbox" name="g2" value="MLP"> MLP</label>
+                <div class="control-group">
+                    <label>Número de Agentes: <span id="num-valor">3</span></label>
+                    <input type="range" id="num-agentes" min="1" max="10" value="3" class="slider">
                 </div>
 
-                <div class="grupo">
-                    <h3>Grupo 3</h3>
-                    <label><input type="checkbox" name="g3" value="SVM"> SVM</label>
-                    <label><input type="checkbox" name="g3" value="ARVORE_DECISAO"> Árvore</label>
-                    <label><input type="checkbox" name="g3" value="PERCEPTRON"> Perceptron</label>
-                    <label><input type="checkbox" name="g3" value="MLP"> MLP</label>
+                <div class="control-group">
+                    <label>Bombas: <span id="bombas-valor">50%</span></label>
+                    <div class="btn-group">
+                        <button class="mini-btn" onclick="setBombas(50)">50%</button>
+                        <button class="mini-btn" onclick="setBombas(60)">60%</button>
+                        <button class="mini-btn" onclick="setBombas(70)">70%</button>
+                        <button class="mini-btn" onclick="setBombas(80)">80%</button>
+                    </div>
+                    <input type="range" id="percentagem-bombas" min="0" max="100" step="5" value="50" class="slider">
                 </div>
-            </div>
 
-            <div class="botoes">
-                <button id="btn-simular" class="btn-primary">▶️ Iniciar Simulação</button>
-                <button id="btn-multiplas" class="btn-secondary">📊 Executar 30×</button>
+                <div class="algoritmos">
+                    <div class="algoritmo-group">
+                        <h3>Grupo 2</h3>
+                        <label><input type="checkbox" name="g2" value="SVM"> SVM</label>
+                        <label><input type="checkbox" name="g2" value="ARVORE_DECISAO"> Árvore</label>
+                        <label><input type="checkbox" name="g2" value="PERCEPTRON"> Perceptron</label>
+                        <label><input type="checkbox" name="g2" value="MLP"> MLP</label>
+                    </div>
+
+                    <div class="algoritmo-group">
+                        <h3>Grupo 3</h3>
+                        <label><input type="checkbox" name="g3" value="SVM"> SVM</label>
+                        <label><input type="checkbox" name="g3" value="ARVORE_DECISAO"> Árvore</label>
+                        <label><input type="checkbox" name="g3" value="PERCEPTRON"> Perceptron</label>
+                        <label><input type="checkbox" name="g3" value="MLP"> MLP</label>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="btn-simular" class="main-btn btn-a">▶️ Iniciar Simulação</button>
+                    <button id="btn-multiplas" class="main-btn btn-b">📊 Executar 30×</button>
+                </div>
             </div>
 
             <div id="mensagem" class="mensagem"></div>
-        </div>
 
-        <div class="painel-viz">
-            <h2>📊 Visualização</h2>
-            <div id="status">Aguardando configuração...</div>
-            <div id="tabuleiro" class="tabuleiro"></div>
+            <div id="grid" class="grid"></div>
             
-            <div class="legenda">
+            <div class="legenda-simbolos">
                 <span><span class="cel L"></span> Livre</span>
                 <span><span class="cel B"></span> Bomba</span>
                 <span><span class="cel T"></span> Tesouro</span>
@@ -77,31 +78,43 @@
             </div>
         </div>
 
-        <div class="painel-metricas">
-            <h2>📈 Métricas</h2>
-            <div class="metricas">
-                <div>
-                    <h3>Grupo 1</h3>
-                    <p>Vivos: <span id="g1-vivos">-</span></p>
-                    <p>Tesouros: <span id="g1-tesouros">-</span></p>
-                </div>
-                <div>
-                    <h3>Grupo 2</h3>
-                    <p>Vivos: <span id="g2-vivos">-</span></p>
-                    <p>Tesouros: <span id="g2-tesouros">-</span></p>
-                </div>
-                <div>
-                    <h3>Grupo 3</h3>
-                    <p>Vivos: <span id="g3-vivos">-</span></p>
-                    <p>Tesouros: <span id="g3-tesouros">-</span></p>
+        <div class="side-panel">
+            <div class="panel">
+                <h3>📊 Status</h3>
+                <div id="status" class="status">Aguardando configuração...</div>
+            </div>
+
+            <div class="panel">
+                <h3>📈 Métricas</h3>
+                <div class="metricas-cards">
+                    <div class="card">
+                        <h4>🌸 Grupo 1</h4>
+                        <p>Vivos: <span id="g1-vivos">-</span></p>
+                        <p>Tesouros: <span id="g1-tesouros">-</span></p>
+                    </div>
+                    <div class="card">
+                        <h4>💎 Grupo 2</h4>
+                        <p>Vivos: <span id="g2-vivos">-</span></p>
+                        <p>Tesouros: <span id="g2-tesouros">-</span></p>
+                    </div>
+                    <div class="card">
+                        <h4>🌿 Grupo 3</h4>
+                        <p>Vivos: <span id="g3-vivos">-</span></p>
+                        <p>Tesouros: <span id="g3-tesouros">-</span></p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div id="resultados" class="resultados" style="display:none;">
-            <h2>🏆 Resultados</h2>
-            <div id="resultado-conteudo"></div>
-            <button id="btn-nova" class="btn-primary">🔄 Nova Simulação</button>
+            <div class="panel" id="resultados" style="display:none;">
+                <h3>🏆 Resultados</h3>
+                <div id="resultado-conteudo"></div>
+                <button id="btn-nova" class="main-btn btn-c" style="margin-top: 15px;">🔄 Nova Simulação</button>
+            </div>
+
+            <div class="panel">
+                <h3>📋 Logs</h3>
+                <div id="logs" class="logs"></div>
+            </div>
         </div>
     </div>
 
