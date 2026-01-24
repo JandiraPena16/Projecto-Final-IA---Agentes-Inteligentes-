@@ -1,0 +1,267 @@
+/* estilos.css */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+header {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    color: #667eea;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #666;
+}
+
+.painel-config, .painel-viz, .painel-metricas, .resultados {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+}
+
+h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.secao {
+    margin-bottom: 25px;
+}
+
+.secao label {
+    display: block;
+    margin: 10px 0;
+    cursor: pointer;
+}
+
+input[type="range"] {
+    width: 100%;
+    margin: 10px 0;
+}
+
+.grupos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.grupo {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+}
+
+.grupo h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.grupo label {
+    display: block;
+    margin: 8px 0;
+}
+
+.botoes {
+    display: flex;
+    gap: 15px;
+    margin: 25px 0;
+}
+
+.btn-primary, .btn-secondary {
+    flex: 1;
+    padding: 15px 30px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.2s;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #48bb78;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #38a169;
+    transform: translateY(-2px);
+}
+
+.mensagem {
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    display: none;
+}
+
+.mensagem.erro {
+    background: #fed7d7;
+    color: #c53030;
+    display: block;
+}
+
+.mensagem.sucesso {
+    background: #c6f6d5;
+    color: #22543d;
+    display: block;
+}
+
+#status {
+    background: #e6fffa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+    color: #234e52;
+}
+
+.tabuleiro {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 2px;
+    background: #ddd;
+    padding: 2px;
+    border-radius: 8px;
+    max-width: 500px;
+    margin: 20px auto;
+}
+
+.celula {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9em;
+    background: white;
+}
+
+.celula.L { background: #f0f0f0; }
+.celula.B { background: #ff6b6b; color: white; }
+.celula.T { background: #ffd93d; }
+.celula.F { background: #6bcbff; }
+
+.legenda {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.legenda span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cel {
+    width: 30px;
+    height: 30px;
+    display: inline-block;
+    border: 1px solid #ddd;
+}
+
+.metricas {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.metricas > div {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.metricas h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.metricas p {
+    margin: 10px 0;
+    font-size: 1.1em;
+}
+
+.metricas span {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 1.3em;
+}
+
+.resultados {
+    display: none;
+}
+
+.resultados.mostrar {
+    display: block;
+}
+
+#resultado-conteudo {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+#resultado-conteudo h3 {
+    color: #667eea;
+    margin: 15px 0 10px 0;
+}
+
+@media (max-width: 768px) {
+    .grupos, .metricas {
+        grid-template-columns: 1fr;
+    }
+    
+    .botoes {
+        flex-direction: column;
+    }
+}

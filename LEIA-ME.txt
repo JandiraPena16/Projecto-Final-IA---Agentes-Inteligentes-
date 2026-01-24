@@ -1,0 +1,146 @@
+# 🤖 Exploração Colaborativa - Agentes IA
+
+**Projeto de Inteligência Artificial 2024/2025**  
+**ISPTEC - 4º Ano**
+
+---
+
+## 📦 Ficheiros do Projeto
+
+```
+projeto_agentes_ia/
+├── backend/
+│   ├── servidor.py                    # Servidor Flask (EXECUTAR)
+│   ├── treinar_modelos.py             # Treinar algoritmos (EXECUTAR PRIMEIRO)
+│   ├── configuracoes.py               # Configurações
+│   ├── requisitos.txt                 # Dependências Python
+│   │
+│   ├── modelos/
+│   │   ├── tabuleiro.py               # Ambiente 10x10
+│   │   ├── agente.py                  # Agente explorador
+│   │   └── grupo.py                   # Gerenciador de grupos
+│   │
+│   ├── algoritmos/
+│   │   ├── busca_largura.py           # BFS
+│   │   ├── svm.py                     # SVM
+│   │   ├── arvore_decisao.py          # Árvore
+│   │   ├── perceptron.py              # Perceptron
+│   │   └── mlp.py                     # MLP
+│   │
+│   ├── simulacao/
+│   │   └── simulador.py               # Motor de simulação
+│   │
+│   └── utilitarios/
+│       └── gerador_dados.py           # Gerador de dados de treino
+│
+├── frontend/
+│   ├── interface.html                 # Interface (ABRIR NO NAVEGADOR)
+│   ├── estilos.css                    # Estilos
+│   └── script.js                      # Lógica JavaScript
+│
+├── RELATORIO_IMPLEMENTACAO.docx       # Relatório em Word
+└── LEIA-ME.txt                        # Este ficheiro
+```
+
+---
+
+## 🚀 COMO USAR
+
+### PASSO 1: Instalar Dependências
+
+```bash
+cd backend
+pip install -r requisitos.txt
+```
+
+### PASSO 2: Treinar Modelos (OBRIGATÓRIO!)
+
+```bash
+python treinar_modelos.py
+```
+
+⏱️ Tempo: 2-5 minutos  
+✅ Cria 4 modelos em `modelos_treinados/`
+
+### PASSO 3: Iniciar Servidor
+
+```bash
+python servidor.py
+```
+
+✅ Servidor em: http://localhost:5000
+
+### PASSO 4: Abrir Interface
+
+Abrir `frontend/interface.html` no navegador (Chrome, Firefox, Edge)
+
+---
+
+## 🎮 Usar o Sistema
+
+1. **Escolher Abordagem** (A, B ou C)
+2. **Definir número de agentes** (2-10)
+3. **Ajustar percentagem de bombas** (50%-80%)
+4. **Selecionar algoritmos** para Grupo 2
+5. **Selecionar algoritmos DIFERENTES** para Grupo 3
+6. **Clicar em "Iniciar Simulação"**
+
+Para análise estatística: **"Executar 30×"**
+
+---
+
+## ⚠️ REGRA IMPORTANTE
+
+**Grupo 2 e Grupo 3 devem ter algoritmos DIFERENTES!**
+
+✅ Correto: G2=[SVM], G3=[Árvore]  
+❌ Errado: G2=[SVM], G3=[SVM]
+
+---
+
+## 📊 Algoritmos Disponíveis
+
+- **SVM**: Support Vector Machine
+- **ARVORE_DECISAO**: Árvore de Decisão
+- **PERCEPTRON**: Perceptron (3 neurónios)
+- **MLP**: Multilayer Perceptron (3 neurónios)
+
+---
+
+## 📝 Relatório
+
+O ficheiro **RELATORIO_IMPLEMENTACAO.docx** contém:
+
+- Introdução
+- Arquitetura do sistema
+- Algoritmos implementados
+- Funcionalidades
+- Instruções de uso
+- **[ESPAÇO RESERVADO]** para resultados (preencher com dados experimentais)
+
+---
+
+## 🆘 Problemas Comuns
+
+**Erro: Modelos não carregados**  
+→ Executar: `python treinar_modelos.py`
+
+**Erro: Não conecta ao servidor**  
+→ Verificar se `python servidor.py` está rodando
+
+**Simulação muito lenta**  
+→ Reduzir número de agentes ou percentagem de bombas
+
+---
+
+## 👥 Autores
+
+**Grupo:** [INSERIR NÚMERO]  
+**Integrantes:** [INSERIR NOMES]
+
+**Professor:** Bongo Cahisso  
+**Email:** bongo.cahisso@isptec.co.ao
+
+---
+
+**Boa sorte! 🚀**

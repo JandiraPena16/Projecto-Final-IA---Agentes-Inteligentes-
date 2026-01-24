@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentes Colaborativos IA</title>
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 Exploração Colaborativa - Agentes IA</h1>
+            <p>Projeto de Inteligência Artificial 2024/2025</p>
+        </header>
+
+        <div class="painel-config">
+            <h2>⚙️ Configuração</h2>
+            
+            <div class="secao">
+                <h3>Abordagem</h3>
+                <label><input type="radio" name="abordagem" value="A" checked> <strong>A:</strong> >50% tesouros</label>
+                <label><input type="radio" name="abordagem" value="B"> <strong>B:</strong> Exploração completa</label>
+                <label><input type="radio" name="abordagem" value="C"> <strong>C:</strong> Encontrar bandeira</label>
+            </div>
+
+            <div class="secao">
+                <h3>Número de Agentes: <span id="num-valor">3</span></h3>
+                <input type="range" id="num-agentes" min="1" max="10" value="3">
+            </div>
+
+            <div class="secao">
+                <h3>Bombas: <span id="bombas-valor">50%</span></h3>
+                <input type="range" id="percentagem-bombas" min="0" max="100" step="5" value="50">
+            </div>
+
+            <div class="grupos">
+                <div class="grupo">
+                    <h3>Grupo 1 - Baseline</h3>
+                    <p>BFS Puro</p>
+                </div>
+
+                <div class="grupo">
+                    <h3>Grupo 2</h3>
+                    <label><input type="checkbox" name="g2" value="SVM"> SVM</label>
+                    <label><input type="checkbox" name="g2" value="ARVORE_DECISAO"> Árvore</label>
+                    <label><input type="checkbox" name="g2" value="PERCEPTRON"> Perceptron</label>
+                    <label><input type="checkbox" name="g2" value="MLP"> MLP</label>
+                </div>
+
+                <div class="grupo">
+                    <h3>Grupo 3</h3>
+                    <label><input type="checkbox" name="g3" value="SVM"> SVM</label>
+                    <label><input type="checkbox" name="g3" value="ARVORE_DECISAO"> Árvore</label>
+                    <label><input type="checkbox" name="g3" value="PERCEPTRON"> Perceptron</label>
+                    <label><input type="checkbox" name="g3" value="MLP"> MLP</label>
+                </div>
+            </div>
+
+            <div class="botoes">
+                <button id="btn-simular" class="btn-primary">▶️ Iniciar Simulação</button>
+                <button id="btn-multiplas" class="btn-secondary">📊 Executar 30×</button>
+            </div>
+
+            <div id="mensagem" class="mensagem"></div>
+        </div>
+
+        <div class="painel-viz">
+            <h2>📊 Visualização</h2>
+            <div id="status">Aguardando configuração...</div>
+            <div id="tabuleiro" class="tabuleiro"></div>
+            
+            <div class="legenda">
+                <span><span class="cel L"></span> Livre</span>
+                <span><span class="cel B"></span> Bomba</span>
+                <span><span class="cel T"></span> Tesouro</span>
+                <span><span class="cel F"></span> Bandeira</span>
+            </div>
+        </div>
+
+        <div class="painel-metricas">
+            <h2>📈 Métricas</h2>
+            <div class="metricas">
+                <div>
+                    <h3>Grupo 1</h3>
+                    <p>Vivos: <span id="g1-vivos">-</span></p>
+                    <p>Tesouros: <span id="g1-tesouros">-</span></p>
+                </div>
+                <div>
+                    <h3>Grupo 2</h3>
+                    <p>Vivos: <span id="g2-vivos">-</span></p>
+                    <p>Tesouros: <span id="g2-tesouros">-</span></p>
+                </div>
+                <div>
+                    <h3>Grupo 3</h3>
+                    <p>Vivos: <span id="g3-vivos">-</span></p>
+                    <p>Tesouros: <span id="g3-tesouros">-</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultados" class="resultados" style="display:none;">
+            <h2>🏆 Resultados</h2>
+            <div id="resultado-conteudo"></div>
+            <button id="btn-nova" class="btn-primary">🔄 Nova Simulação</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
