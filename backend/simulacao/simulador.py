@@ -107,6 +107,12 @@ class Simulador:
                 agentes.append(agente)
             
             grupo = Grupo(num_grupo, agentes)
+            
+            # ✅ CRÍTICO: Registrar posição inicial (0,0) no conhecimento do grupo
+            tipo_inicial = self.tabuleiro.obter_tipo(posicao_inicial)
+            grupo.conhecimento.registrar(tipo_inicial, posicao_inicial)
+            print(f"✅ Posição inicial {posicao_inicial} registrada para Grupo {num_grupo}")
+            
             grupos.append(grupo)
             print(f"Grupo {num_grupo} criado com {len(agentes)} agentes")
         
@@ -320,12 +326,20 @@ class Simulador:
         elif self.abordagem == ABORDAGEM_B:
             total_celulas = TAMANHO_TABULEIRO * TAMANHO_TABULEIRO
             
+            # ✅ DEBUG
+            print(f"\n🔍 DEBUG Abordagem B:")
+            print(f"   Total células no tabuleiro: {total_celulas}")
+            
             for grupo in self.grupos:
                 # ✅ VALIDAÇÃO: Deve ter pelo menos 1 agente vivo
-                if not grupo.pelo_menos_um_vivo():
-                    continue
-                
+                vivo = grupo.pelo_menos_um_vivo()
                 celulas_exploradas = len(grupo.conhecimento.celulas_exploradas)
+                
+                # ✅ DEBUG
+                print(f"   Grupo {grupo.numero}: {celulas_exploradas}/{total_celulas} células | Vivo: {vivo}")
+                
+                if not vivo:
+                    continue
                 
                 # ✅ VALIDAÇÃO: Deve explorar 100% das células
                 if celulas_exploradas >= total_celulas:
@@ -333,6 +347,7 @@ class Simulador:
                     self.sucesso = True
                     self.grupo_vencedor = grupo.numero
                     self.razao = f"Grupo {grupo.numero} explorou completamente ({celulas_exploradas}/{total_celulas})"
+                    print(f"   🏆 VITÓRIA DETECTADA: Grupo {grupo.numero}!")
                     return
         
         # Abordagem C: Encontrar bandeira

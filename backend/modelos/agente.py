@@ -91,6 +91,9 @@ class Agente:
         """Processa interação com célula"""
         resultado = {'tipo': tipo, 'sobreviveu': True, 'evento': None}
         
+        # ✅ CRÍTICO: Registrar TODAS as células exploradas (inclusive livres)
+        self.conhecimento_grupo.registrar(tipo, self.posicao)
+        
         if tipo == TIPO_LIVRE:
             resultado['evento'] = 'livre'
         
@@ -99,25 +102,19 @@ class Agente:
                 self.imunidades -= 1
                 tabuleiro.desativar_bomba(self.posicao, self.grupo)
                 resultado['evento'] = 'bomba_desativada'
-                self.conhecimento_grupo.registrar('bomba_desativada', self.posicao)
             else:
                 self.vivo = False
                 self.bombas_acionadas += 1
                 resultado['sobreviveu'] = False
                 resultado['evento'] = 'morte'
-                self.conhecimento_grupo.registrar('bomba', self.posicao)
         
         elif tipo == TIPO_TESOURO:
             self.imunidades += 1
             self.tesouros_encontrados += 1
-            # ✅ CORRIGIDO: Passar posição para remover tesouro
             tabuleiro.coletar_tesouro(self.posicao, self.grupo)
             resultado['evento'] = 'tesouro'
-            self.conhecimento_grupo.registrar('tesouro', self.posicao)
         
         elif tipo == TIPO_BANDEIRA:
             resultado['evento'] = 'bandeira'
-            self.conhecimento_grupo.registrar('bandeira', self.posicao)
         
-        tabuleiro.marcar_explorada(self.posicao, self.grupo)
         return resultado
