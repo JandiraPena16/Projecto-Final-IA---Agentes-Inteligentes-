@@ -41,6 +41,10 @@ class Simulador:
         self.grupos = self._criar_grupos(config)
         print(f"Grupos criados: {len(self.grupos)}")
         
+        # ✅ NOVO: Guardar total de tesouros inicial (fixo)
+        self.total_tesouros_inicial = len(self.tabuleiro.posicoes_tesouros)
+        print(f"Total de tesouros no tabuleiro: {self.total_tesouros_inicial}")
+        
         self.passo = 0
         self.completo = False
         self.sucesso = False
@@ -247,17 +251,20 @@ class Simulador:
             self.razao = "Todos os agentes morreram"
             return
         
-        # Abordagem A: >50% tesouros
+        # Abordagem A: >50% tesouros ENCONTRADOS (histórico)
         if self.abordagem == ABORDAGEM_A:
-            total_inicial = len(self.tabuleiro.posicoes_tesouros) + sum(self.tabuleiro.tesouros_coletados.values())
+            # ✅ CORRIGIDO: Usar total FIXO de tesouros do início
+            total_tesouros = self.total_tesouros_inicial
             
             for grupo in self.grupos:
-                tesouros_grupo = self.tabuleiro.tesouros_coletados[grupo.numero]
-                if total_inicial > 0 and tesouros_grupo > total_inicial * 0.5:
+                # Total de tesouros ENCONTRADOS pelo grupo (nunca diminui)
+                tesouros_encontrados = self.tabuleiro.tesouros_coletados[grupo.numero]
+                
+                if total_tesouros > 0 and tesouros_encontrados > total_tesouros * 0.5:
                     self.completo = True
                     self.sucesso = True
                     self.grupo_vencedor = grupo.numero
-                    self.razao = f"Grupo {grupo.numero} encontrou >50% tesouros ({tesouros_grupo}/{total_inicial})"
+                    self.razao = f"Grupo {grupo.numero} encontrou >50% tesouros ({tesouros_encontrados}/{total_tesouros})"
                     return
         
         # Abordagem B: Exploração completa
