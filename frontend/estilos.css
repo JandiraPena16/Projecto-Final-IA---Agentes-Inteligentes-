@@ -445,6 +445,22 @@ h1 {
 .card-grupo2 { border-left: 4px solid #F4C430; }
 .card-grupo3 { border-left: 4px solid #043927; }
 
+/* ✅ NOVO: Destaque de card vencedor */
+.card-grupo1.vencedor,
+.card-grupo2.vencedor,
+.card-grupo3.vencedor {
+    border: 3px solid #ffd700;
+    border-left: 4px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    background: linear-gradient(135deg, #fffef0 0%, #fff 100%);
+    animation: brilho 2s ease-in-out infinite;
+}
+
+@keyframes brilho {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+    50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.8); }
+}
+
 .logs {
     background: #fff;
     padding: 12px;
@@ -481,6 +497,63 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+/* ✅ NOVO: Título de resultado */
+.titulo-resultado {
+    text-align: center;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.titulo-resultado.vitoria {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border: 3px solid #d4af37;
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.6);
+}
+
+.titulo-resultado.derrota {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    border: 3px solid #343a40;
+    color: white;
+}
+
+.titulo-resultado h2 {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.titulo-resultado.vitoria h2 {
+    color: #d4af37;
+    animation: pulsar-titulo 1.5s ease-in-out infinite;
+}
+
+.titulo-resultado h3 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+}
+
+.titulo-resultado.vitoria h3 {
+    color: #333;
+}
+
+.titulo-resultado p {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.titulo-resultado.vitoria p {
+    color: #555;
+}
+
+@keyframes pulsar-titulo {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
 
 .stat-destaque {

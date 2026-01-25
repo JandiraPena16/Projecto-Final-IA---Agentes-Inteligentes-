@@ -9,26 +9,34 @@ class BuscaEmLargura:
     def __init__(self, tabuleiro):
         self.tabuleiro = tabuleiro
     
-    def obter_candidatas(self, posicao: Tuple[int, int], visitadas: Set, grupo: int) -> List[Tuple[int, int]]:
+    def obter_candidatas(self, posicao: Tuple[int, int], visitadas: Set, grupo: int, historico_recente: List = None) -> List[Tuple[int, int]]:
         """
-        ✅ CORRIGIDO: Retorna APENAS vizinhos adjacentes (1 casa de distância)
-        Agentes só podem se mover para cima, baixo, esquerda ou direita
+        ✅ CORRIGIDO: Prioriza células NÃO visitadas
+        - Retorna células NOVAS adjacentes primeiro
+        - Só retorna células já visitadas se NÃO houver novas (para passar)
         """
-        candidatas = []
+        candidatas_novas = []
+        
+        # ✅ NOVO: Histórico recente para evitar loops
+        if historico_recente is None:
+            historico_recente = []
         
         # Obter vizinhos diretos (apenas 4 direções, sem diagonal)
         vizinhos = self.tabuleiro.obter_vizinhos(posicao)
         
         for vizinho in vizinhos:
-            # Não revisitar células já exploradas
-            if vizinho in visitadas:
-                continue
-            
             # Verificar se não é bomba conhecida pelo grupo
             if vizinho in self.tabuleiro.bombas_desativadas.get(grupo, set()):
                 continue
             
-            # Adicionar à lista de candidatas
-            candidatas.append(vizinho)
+            # ✅ PRIORIDADE: Células não visitadas
+            if vizinho not in visitadas:
+                candidatas_novas.append(vizinho)
         
-        return candidatas
+        # ✅ Se há células NOVAS, retornar APENAS elas (não misturar com revisitadas)
+        if candidatas_novas:
+            return candidatas_novas
+        
+        # ✅ FALLBACK: Se NÃO há células novas, permitir revisitar LIVRES (para passar)
+        # Mas usar busca expandida em vez de adjacentes
+        return []  # Retorna vazio → simulador vai chamar busca_expandida

@@ -159,28 +159,50 @@ class Simulador:
         
         eventos = []  # ✅ NOVO: Registrar eventos para logs
         
+        # ✅ NOVO: Rastrear quais agentes já foram reportados como parados
+        if not hasattr(self, 'agentes_parados_reportados'):
+            self.agentes_parados_reportados = set()
+        
         for agente in agentes_vivos:
             bfs = BuscaEmLargura(self.tabuleiro)
             
             todas_visitadas = agente.celulas_visitadas | grupo.conhecimento.celulas_exploradas
-            candidatas = bfs.obter_candidatas(agente.posicao, todas_visitadas, grupo.numero)
+            
+            # ✅ NOVO: Passar histórico recente para evitar loops
+            candidatas = bfs.obter_candidatas(
+                agente.posicao, 
+                todas_visitadas, 
+                grupo.numero,
+                agente.historico  # Últimas posições
+            )
             
             # ✅ NOVO: Se não há candidatas adjacentes, tentar busca expandida
             if not candidatas:
                 candidatas = self._busca_expandida(agente.posicao, todas_visitadas, grupo.numero)
                 
+                # ✅ ANTI-LOOP: Remover próximo passo se for voltar para posição recente
+                if candidatas and len(agente.historico) >= 2:
+                    candidatas = [c for c in candidatas if c not in agente.historico[-3:]]
+                
                 if not candidatas:
-                    eventos.append({
-                        'tipo': 'sem_movimento',
-                        'grupo': grupo.numero,
-                        'agente': agente.id,
-                        'posicao': agente.posicao,
-                        'razao': 'Sem células disponíveis para explorar'
-                    })
-                    # ✅ DEBUG: Log quando agente fica preso
-                    if self.passo % 10 == 0:
+                    # ✅ CORRIGIDO: Só reportar "parado" 1 vez por agente
+                    agente_id = (grupo.numero, agente.id)
+                    if agente_id not in self.agentes_parados_reportados:
+                        self.agentes_parados_reportados.add(agente_id)
+                        eventos.append({
+                            'tipo': 'sem_movimento',
+                            'grupo': grupo.numero,
+                            'agente': agente.id,
+                            'posicao': agente.posicao,
+                            'razao': 'Sem células disponíveis para explorar'
+                        })
+                        # Debug no backend
                         print(f"  Grupo {grupo.numero} Agente {agente.id}: PRESO em {agente.posicao}")
                     continue
+            else:
+                # ✅ Se agente voltou a ter candidatas, remover do set de parados
+                agente_id = (grupo.numero, agente.id)
+                self.agentes_parados_reportados.discard(agente_id)
             
             proxima = agente.decidir_proxima_celula(candidatas, self.tabuleiro)
             if not proxima:
@@ -222,39 +244,50 @@ class Simulador:
         # ✅ CORRIGIDO: Acumular eventos de todos os grupos
         self.eventos_passo.extend(eventos)
     
-    def _busca_expandida(self, posicao: Tuple[int, int], visitadas: Set, grupo: int, raio: int = 3) -> List[Tuple[int, int]]:
+    def _busca_expandida(self, posicao: Tuple[int, int], visitadas: Set, grupo: int, raio: int = 5) -> List[Tuple[int, int]]:
         """
-        ✅ NOVO: Busca expandida quando não há candidatas adjacentes
-        Procura em um raio maior (até 3 células de distância)
+        ✅ MELHORADO: Busca expandida que PLANEJA rota até células não visitadas
+        - Procura células não visitadas em um raio maior
+        - Retorna o PRÓXIMO PASSO no caminho (não a célula distante!)
         """
-        candidatas = []
-        fila = deque([(posicao, 0)])  # (posição, distância)
+        fila = deque([(posicao, [posicao])])  # (posição_atual, caminho_até_aqui)
         visitadas_busca = {posicao}
+        proximos_passos = []  # Lista de próximos passos que levam a células não visitadas
         
-        while fila and len(candidatas) < 10:
-            pos_atual, dist = fila.popleft()
+        while fila and len(proximos_passos) < 10:
+            pos_atual, caminho = fila.popleft()
             
-            if dist >= raio:
+            # Limite de profundidade
+            if len(caminho) > raio:
                 continue
             
             for vizinho in self.tabuleiro.obter_vizinhos(pos_atual):
                 if vizinho not in visitadas_busca:
                     visitadas_busca.add(vizinho)
+                    novo_caminho = caminho + [vizinho]
                     
-                    # Se não foi visitada e não é bomba conhecida
+                    # ✅ Se vizinho NÃO foi visitado → encontrou objetivo!
                     if vizinho not in visitadas:
+                        # Verificar se não é bomba conhecida
                         if vizinho not in self.tabuleiro.bombas_desativadas.get(grupo, set()):
-                            candidatas.append(vizinho)
-                    
-                    # Continuar busca através de células visitadas livres
-                    tipo = self.tabuleiro.obter_tipo(vizinho)
-                    if tipo == 'L' and vizinho in visitadas:
-                        fila.append((vizinho, dist + 1))
+                            # Retornar o PRÓXIMO PASSO (posição 1 do caminho, não a final)
+                            if len(novo_caminho) >= 2:
+                                proximo_passo = novo_caminho[1]  # Primeira célula após posição atual
+                                if proximo_passo not in proximos_passos:
+                                    proximos_passos.append(proximo_passo)
+                    else:
+                        # Se já foi visitada, mas é LIVRE, continuar busca através dela
+                        tipo = self.tabuleiro.obter_tipo(vizinho)
+                        if tipo == 'L':
+                            fila.append((vizinho, novo_caminho))
         
-        return candidatas
+        return proximos_passos
     
     def _verificar_termino(self):
-        """Verifica condições de término"""
+        """
+        ✅ CORRIGIDO: Verifica condições de término
+        Só marca vitória quando objetivos realmente alcançados
+        """
         # Todos mortos
         if all(g.todos_mortos() for g in self.grupos):
             self.completo = True
@@ -267,10 +300,15 @@ class Simulador:
             # ✅ CORRIGIDO: Usar total FIXO de tesouros do início
             total_tesouros = self.total_tesouros_inicial
             
+            # ✅ VALIDAÇÃO: Só marcar vitória se pelo menos 1 agente vivo
             for grupo in self.grupos:
+                if not grupo.pelo_menos_um_vivo():
+                    continue  # Grupo morto não pode vencer
+                
                 # Total de tesouros ENCONTRADOS pelo grupo (nunca diminui)
                 tesouros_encontrados = self.tabuleiro.tesouros_coletados[grupo.numero]
                 
+                # ✅ VALIDAÇÃO: Deve ter MAIS de 50%, não apenas >=
                 if total_tesouros > 0 and tesouros_encontrados > total_tesouros * 0.5:
                     self.completo = True
                     self.sucesso = True
@@ -283,24 +321,39 @@ class Simulador:
             total_celulas = TAMANHO_TABULEIRO * TAMANHO_TABULEIRO
             
             for grupo in self.grupos:
-                if grupo.pelo_menos_um_vivo():
-                    celulas_exploradas = len(grupo.conhecimento.celulas_exploradas)
-                    if celulas_exploradas >= total_celulas:
-                        self.completo = True
-                        self.sucesso = True
-                        self.grupo_vencedor = grupo.numero
-                        self.razao = f"Grupo {grupo.numero} explorou completamente ({celulas_exploradas}/{total_celulas})"
-                        return
+                # ✅ VALIDAÇÃO: Deve ter pelo menos 1 agente vivo
+                if not grupo.pelo_menos_um_vivo():
+                    continue
+                
+                celulas_exploradas = len(grupo.conhecimento.celulas_exploradas)
+                
+                # ✅ VALIDAÇÃO: Deve explorar 100% das células
+                if celulas_exploradas >= total_celulas:
+                    self.completo = True
+                    self.sucesso = True
+                    self.grupo_vencedor = grupo.numero
+                    self.razao = f"Grupo {grupo.numero} explorou completamente ({celulas_exploradas}/{total_celulas})"
+                    return
         
         # Abordagem C: Encontrar bandeira
         elif self.abordagem == ABORDAGEM_C:
             for grupo in self.grupos:
+                # ✅ VALIDAÇÃO: Verificar se realmente encontrou bandeira
                 if grupo.conhecimento.posicao_bandeira:
-                    self.completo = True
-                    self.sucesso = True
-                    self.grupo_vencedor = grupo.numero
-                    self.razao = f"Grupo {grupo.numero} encontrou bandeira"
-                    return
+                    # ✅ EXTRA: Validar que a posição é a bandeira real
+                    if grupo.conhecimento.posicao_bandeira == self.tabuleiro.posicao_bandeira:
+                        self.completo = True
+                        self.sucesso = True
+                        self.grupo_vencedor = grupo.numero
+                        self.razao = f"Grupo {grupo.numero} encontrou bandeira em {grupo.conhecimento.posicao_bandeira}"
+                        return
+        
+        # ✅ NOVO: Timeout - se passar de 1000 passos, ninguém vence
+        if self.passo >= 1000:
+            self.completo = True
+            self.sucesso = False
+            self.razao = f"Timeout: {self.passo} passos sem vitória"
+            return
     
     def obter_estado_atual(self) -> Dict:
         """

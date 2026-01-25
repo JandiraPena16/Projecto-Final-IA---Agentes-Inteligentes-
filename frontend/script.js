@@ -71,6 +71,17 @@ function pararSimulacao() {
 async function iniciarSimulacao() {
     if (simulacaoAtiva) return;
     
+    // ✅ NOVO: Ocultar resultados finais da simulação anterior
+    const panelResultados = document.getElementById('resultados');
+    if (panelResultados) {
+        panelResultados.style.display = 'none';
+    }
+    
+    // ✅ NOVO: Remover destaque de vencedor dos cards
+    document.querySelectorAll('.grupo-stats').forEach(card => {
+        card.classList.remove('vencedor');
+    });
+    
     // Obter configurações
     const abordagem = document.querySelector('.mini-btn[data-value].active')?.dataset.value || 'A';
     const numAgentes = parseInt(document.getElementById('num-agentes').value);
@@ -157,6 +168,14 @@ async function executarProximoPasso() {
         if (estado.completo) {
             pararSimulacao();
             
+            // ✅ NOVO: Destacar card do grupo vencedor
+            if (estado.sucesso && estado.grupo_vencedor) {
+                const cardVencedor = document.querySelector(`.card-grupo${estado.grupo_vencedor}`);
+                if (cardVencedor) {
+                    cardVencedor.classList.add('vencedor');
+                }
+            }
+            
             if (estado.sucesso) {
                 const grupoVencedor = estado.grupo_vencedor;
                 mostrarMensagem(`🏆 VITÓRIA DO GRUPO ${grupoVencedor}! ${estado.razao}`, 'sucesso');
@@ -166,7 +185,7 @@ async function executarProximoPasso() {
                 adicionarLog(`💀 ${estado.razao}`);
             }
             
-            // Mostrar estatísticas finais
+            // ✅ Mostrar estatísticas finais (PERMANENTE até nova simulação)
             mostrarEstatisticasFinais(estado);
         }
         
@@ -303,6 +322,21 @@ function mostrarEstatisticasFinais(estado) {
     const conteudo = document.getElementById('resultado-conteudo');
     
     let html = '<div class="stats-finais">';
+    
+    // ✅ NOVO: Título de vitória/derrota
+    if (estado.sucesso && estado.grupo_vencedor) {
+        const emoji = estado.grupo_vencedor === 1 ? '🌸' : estado.grupo_vencedor === 2 ? '💎' : '🌿';
+        html += `<div class="titulo-resultado vitoria">`;
+        html += `<h2>🏆 VITÓRIA 🏆</h2>`;
+        html += `<h3>${emoji} GRUPO ${estado.grupo_vencedor} ${emoji}</h3>`;
+        html += `<p>${estado.razao}</p>`;
+        html += `</div>`;
+    } else {
+        html += `<div class="titulo-resultado derrota">`;
+        html += `<h2>💀 GAME OVER 💀</h2>`;
+        html += `<p>${estado.razao}</p>`;
+        html += `</div>`;
+    }
     
     // ✅ CORRIGIDO: Garantir que tempo e passos são mostrados
     const tempoTotal = estado.tempo_segundos || 0;

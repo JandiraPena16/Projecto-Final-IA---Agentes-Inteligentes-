@@ -80,6 +80,11 @@ class Agente:
         self.posicao = nova_posicao
         self.celulas_visitadas.add(nova_posicao)
         self.historico.append(nova_posicao)
+        
+        # ✅ NOVO: Manter apenas últimas 10 posições (evitar memória infinita)
+        if len(self.historico) > 10:
+            self.historico = self.historico[-10:]
+        
         self.passos += 1
     
     def processar_celula(self, tipo: str, tabuleiro):
