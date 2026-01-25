@@ -293,8 +293,9 @@ function renderizarEstado(estado) {
     }
     
     // Atualizar status
+    const tempoFormatado = estado.tempo_segundos ? estado.tempo_segundos.toFixed(2) : '0.00';
     document.getElementById('status').textContent = 
-        `Passo ${estado.passo} | ${simulacaoEmPausa ? '⏸️ PAUSADO' : '▶️ Em execução'}`;
+        `Passo ${estado.passo} | Tempo: ${tempoFormatado}s | ${simulacaoEmPausa ? '⏸️ PAUSADO' : '▶️ Em execução'}`;
 }
 
 function mostrarEstatisticasFinais(estado) {
@@ -303,43 +304,49 @@ function mostrarEstatisticasFinais(estado) {
     
     let html = '<div class="stats-finais">';
     
+    // ✅ CORRIGIDO: Garantir que tempo e passos são mostrados
+    const tempoTotal = estado.tempo_segundos || 0;
+    const passosTotal = estado.passo || 0;
+    
     html += `<div class="stat-destaque">`;
     html += `<h4>⏱️ Tempo Total</h4>`;
-    html += `<p>${estado.tempo_segundos?.toFixed(2) || '0.00'}s</p>`;
+    html += `<p>${tempoTotal.toFixed(2)}s</p>`;
     html += `</div>`;
     
     html += `<div class="stat-destaque">`;
     html += `<h4>📊 Passos Executados</h4>`;
-    html += `<p>${estado.passos}</p>`;
+    html += `<p>${passosTotal}</p>`;
     html += `</div>`;
     
     // Detalhes por grupo
-    estado.grupos.forEach(g => {
-        const emoji = g.grupo === 1 ? '🌸' : g.grupo === 2 ? '💎' : '🌿';
-        const vencedor = g.grupo === estado.grupo_vencedor;
-        
-        html += `<div class="grupo-stats ${vencedor ? 'vencedor' : ''}">`;
-        html += `<h4>${emoji} Grupo ${g.grupo} ${vencedor ? '👑' : ''}</h4>`;
-        html += `<p>Vivos: ${g.vivos}/${g.total}</p>`;
-        html += `<p>Tesouros: ${g.tesouros}</p>`;
-        html += `<p>Células: ${g.celulas_exploradas}</p>`;
-        
-        // ✅ Detalhes dos agentes
-        if (g.agentes) {
-            html += `<div class="agentes-detalhes">`;
-            g.agentes.forEach(a => {
-                const status = a.vivo ? '✅' : '💀';
-                html += `<small>${status} Agente ${a.id}: ${a.tesouros}💎`;
-                if (!a.vivo && a.posicao_morte) {
-                    html += ` (morreu em ${a.posicao_morte[0]},${a.posicao_morte[1]})`;
-                }
-                html += `</small><br>`;
-            });
+    if (estado.grupos) {
+        estado.grupos.forEach(g => {
+            const emoji = g.grupo === 1 ? '🌸' : g.grupo === 2 ? '💎' : '🌿';
+            const vencedor = g.grupo === estado.grupo_vencedor;
+            
+            html += `<div class="grupo-stats ${vencedor ? 'vencedor' : ''}">`;
+            html += `<h4>${emoji} Grupo ${g.grupo} ${vencedor ? '👑' : ''}</h4>`;
+            html += `<p>Vivos: ${g.vivos}/${g.total}</p>`;
+            html += `<p>Tesouros: ${g.tesouros}</p>`;
+            html += `<p>Células: ${g.celulas_exploradas}</p>`;
+            
+            // ✅ Detalhes dos agentes
+            if (g.agentes) {
+                html += `<div class="agentes-detalhes">`;
+                g.agentes.forEach(a => {
+                    const status = a.vivo ? '✅' : '💀';
+                    html += `<small>${status} Agente ${a.id}: ${a.tesouros}💎`;
+                    if (!a.vivo && a.posicao_morte) {
+                        html += ` (morreu em ${a.posicao_morte[0]},${a.posicao_morte[1]})`;
+                    }
+                    html += `</small><br>`;
+                });
+                html += `</div>`;
+            }
+            
             html += `</div>`;
-        }
-        
-        html += `</div>`;
-    });
+        });
+    }
     
     html += '</div>';
     

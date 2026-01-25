@@ -151,6 +151,12 @@ class Simulador:
         if self.passo == 1:
             print(f"\nGrupo {grupo.numero}: {len(agentes_vivos)} agentes vivos")
         
+        # ✅ DEBUG: Log se grupo não tem agentes vivos
+        if not agentes_vivos:
+            if self.passo % 10 == 0:  # Log a cada 10 passos
+                print(f"  Grupo {grupo.numero}: todos os agentes mortos")
+            return
+        
         eventos = []  # ✅ NOVO: Registrar eventos para logs
         
         for agente in agentes_vivos:
@@ -171,6 +177,9 @@ class Simulador:
                         'posicao': agente.posicao,
                         'razao': 'Sem células disponíveis para explorar'
                     })
+                    # ✅ DEBUG: Log quando agente fica preso
+                    if self.passo % 10 == 0:
+                        print(f"  Grupo {grupo.numero} Agente {agente.id}: PRESO em {agente.posicao}")
                     continue
             
             proxima = agente.decidir_proxima_celula(candidatas, self.tabuleiro)
@@ -209,7 +218,9 @@ class Simulador:
         # ✅ NOVO: Armazenar eventos para enviar ao frontend
         if not hasattr(self, 'eventos_passo'):
             self.eventos_passo = []
-        self.eventos_passo = eventos
+        
+        # ✅ CORRIGIDO: Acumular eventos de todos os grupos
+        self.eventos_passo.extend(eventos)
     
     def _busca_expandida(self, posicao: Tuple[int, int], visitadas: Set, grupo: int, raio: int = 3) -> List[Tuple[int, int]]:
         """
@@ -326,8 +337,17 @@ class Simulador:
         # ✅ NOVO: Incluir eventos do passo
         eventos = getattr(self, 'eventos_passo', [])
         
+        # ✅ NOVO: Calcular tempo decorrido
+        tempo_decorrido = 0.0
+        if self.tempo_inicio:
+            if self.tempo_fim:
+                tempo_decorrido = self.tempo_fim - self.tempo_inicio
+            else:
+                tempo_decorrido = time.time() - self.tempo_inicio
+        
         return {
             'passo': self.passo,
+            'tempo_segundos': tempo_decorrido,  # ✅ ADICIONADO
             'agentes': agentes_estado,
             'grupos': stats_grupos,
             'tabuleiro': self.tabuleiro.exportar_matriz(),
@@ -402,6 +422,9 @@ class Simulador:
             self.tempo_inicio = time.time()
         
         self.passo += 1
+        
+        # ✅ NOVO: Limpar eventos do passo anterior
+        self.eventos_passo = []
         
         # Executar passo para cada grupo
         for grupo in self.grupos:
