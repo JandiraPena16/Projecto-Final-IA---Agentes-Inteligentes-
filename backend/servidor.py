@@ -50,7 +50,7 @@ def home():
 
 @app.route('/simular_tempo_real', methods=['POST'])
 def simular_tempo_real():
-    """Cria simulação e retorna estado inicial"""
+    """✅ ATUALIZADO: Cria simulação e retorna estado inicial"""
     global SIMULACAO_ATUAL
     
     dados = request.json
@@ -58,7 +58,7 @@ def simular_tempo_real():
     alg_g2_nomes = dados.get('algoritmos_grupo2', [])
     alg_g3_nomes = dados.get('algoritmos_grupo3', [])
     
-    if set(alg_g2_nomes) == set(alg_g3_nomes):
+    if set(alg_g2_nomes) == set(alg_g3_nomes) and len(alg_g2_nomes) > 0:
         return jsonify({'erro': 'Algoritmos devem ser diferentes!'}), 400
     
     alg_g2 = [MODELOS[nome] for nome in alg_g2_nomes if nome in MODELOS]
@@ -74,54 +74,24 @@ def simular_tempo_real():
     
     try:
         SIMULACAO_ATUAL = Simulador(config)
-        
-        # Estado inicial
-        estado = {
-            'passo': 0,
-            'completo': False,
-            'tabuleiro': SIMULACAO_ATUAL.tabuleiro.exportar_matriz(),
-            'grupos': obter_estado_grupos(SIMULACAO_ATUAL),
-            'posicoes_agentes': obter_posicoes_agentes(SIMULACAO_ATUAL)
-        }
-        
+        estado = SIMULACAO_ATUAL.obter_estado_atual()
         return jsonify(estado)
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
 @app.route('/proximo_passo', methods=['POST'])
 def proximo_passo():
-    """Executa próximo passo da simulação"""
+    """✅ ATUALIZADO: Executa próximo passo da simulação"""
     global SIMULACAO_ATUAL
     
     if not SIMULACAO_ATUAL:
         return jsonify({'erro': 'Nenhuma simulação ativa'}), 400
     
     if SIMULACAO_ATUAL.completo:
-        return jsonify({
-            'completo': True,
-            'sucesso': SIMULACAO_ATUAL.sucesso,
-            'razao': SIMULACAO_ATUAL.razao
-        })
+        return jsonify(SIMULACAO_ATUAL.obter_estado_atual())
     
-    # Executar 1 passo
-    SIMULACAO_ATUAL.passo += 1
-    
-    for grupo in SIMULACAO_ATUAL.grupos:
-        if not grupo.todos_mortos():
-            SIMULACAO_ATUAL._executar_passo_grupo(grupo)
-    
-    SIMULACAO_ATUAL._verificar_termino()
-    
-    # Estado atualizado
-    estado = {
-        'passo': SIMULACAO_ATUAL.passo,
-        'completo': SIMULACAO_ATUAL.completo,
-        'sucesso': SIMULACAO_ATUAL.sucesso if SIMULACAO_ATUAL.completo else None,
-        'razao': SIMULACAO_ATUAL.razao if SIMULACAO_ATUAL.completo else None,
-        'tabuleiro': SIMULACAO_ATUAL.tabuleiro.exportar_matriz(),
-        'grupos': obter_estado_grupos(SIMULACAO_ATUAL),
-        'posicoes_agentes': obter_posicoes_agentes(SIMULACAO_ATUAL)
-    }
+    # Executar passo usando novo método
+    estado = SIMULACAO_ATUAL.executar_passo()
     
     return jsonify(estado)
 

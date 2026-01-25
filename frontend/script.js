@@ -1,352 +1,385 @@
+// ✅ SCRIPT ATUALIZADO COM VISUALIZAÇÃO DE AGENTES EM TEMPO REAL
+
 const API_URL = 'http://localhost:5000';
 
+// Cores dos grupos
+const CORES_GRUPOS = {
+    1: '#800020',  // Grupo 1 - Vinho
+    2: '#F4C430',  // Grupo 2 - Ouro
+    3: '#043927'   // Grupo 3 - Verde escuro
+};
+
 let simulacaoAtiva = false;
+let simulacaoEmPausa = false;
 let intervaloAnimacao = null;
-let logs = [];
-let passoAtual = 0;
 
-// Elementos DOM
-const numAgentesSlider = document.getElementById('num-agentes');
-const numAgentesValor = document.getElementById('num-valor');
-const bombasSlider = document.getElementById('percentagem-bombas');
-const bombasValor = document.getElementById('bombas-valor');
-const btnSimular = document.getElementById('btn-simular');
-const btnMultiplas = document.getElementById('btn-multiplas');
-const mensagem = document.getElementById('mensagem');
-const status = document.getElementById('status');
-const grid = document.getElementById('grid');
-const logsDiv = document.getElementById('logs');
-const btnNova = document.getElementById('btn-nova');
-const resultadosDiv = document.getElementById('resultados');
-
-// Atualizar sliders
-numAgentesSlider.addEventListener('input', (e) => {
-    numAgentesValor.textContent = e.target.value;
+// Configuração inicial
+document.getElementById('num-agentes').addEventListener('input', (e) => {
+    document.getElementById('num-valor').textContent = e.target.value;
 });
 
-bombasSlider.addEventListener('input', (e) => {
-    bombasValor.textContent = e.target.value + '%';
+document.getElementById('percentagem-bombas').addEventListener('input', (e) => {
+    document.getElementById('bombas-valor').textContent = `${e.target.value}%`;
 });
 
-// Botões de abordagem
+// Seleção de abordagem
 document.querySelectorAll('.mini-btn[data-value]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', () => {
         document.querySelectorAll('.mini-btn[data-value]').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
+        btn.classList.add('active');
     });
 });
 
-function setBombas(valor) {
-    bombasSlider.value = valor;
-    bombasValor.textContent = valor + '%';
-    logs.push(`[CONFIG] Bombas definidas para ${valor}%`);
-    atualizarLogs();
-}
+// Botão Iniciar Simulação
+document.getElementById('btn-simular').addEventListener('click', iniciarSimulacao);
 
-// Validação
-function validarAlgoritmos() {
-    const g2 = Array.from(document.querySelectorAll('input[name="g2"]:checked')).map(cb => cb.value);
-    const g3 = Array.from(document.querySelectorAll('input[name="g3"]:checked')).map(cb => cb.value);
-    
-    if (g2.length === 0 && g3.length === 0) return { valido: true };
-    
-    if (g2.length === g3.length && g2.every(alg => g3.includes(alg))) {
-        return { valido: false, erro: 'Grupos 2 e 3 devem ter algoritmos DIFERENTES!' };
-    }
-    
-    return { valido: true };
-}
-
-function obterConfiguracao() {
-    const abordagem = document.querySelector('.mini-btn.active[data-value]').dataset.value;
-    const numAgentes = parseInt(numAgentesSlider.value);
-    const percentagemBombas = parseInt(bombasSlider.value);
-    const g2 = Array.from(document.querySelectorAll('input[name="g2"]:checked')).map(cb => cb.value);
-    const g3 = Array.from(document.querySelectorAll('input[name="g3"]:checked')).map(cb => cb.value);
-    
-    logs.push(`[CONFIG] Abordagem: ${abordagem}, Agentes: ${numAgentes}, Bombas: ${percentagemBombas}%`);
-    logs.push(`[CONFIG] Grupo 2: ${g2.join(', ') || 'Nenhum'}`);
-    logs.push(`[CONFIG] Grupo 3: ${g3.join(', ') || 'Nenhum'}`);
-    
-    return { abordagem, num_agentes: numAgentes, percentagem_bombas: percentagemBombas, algoritmos_grupo2: g2, algoritmos_grupo3: g3 };
-}
-
-function mostrarMensagem(texto, tipo = 'erro') {
-    mensagem.textContent = texto;
-    mensagem.className = 'mensagem ' + tipo;
-    logs.push(`[${tipo.toUpperCase()}] ${texto}`);
-    atualizarLogs();
-}
-
-function atualizarLogs() {
-    logsDiv.textContent = logs.slice(-15).join('\n');
-    logsDiv.scrollTop = logsDiv.scrollHeight;
-}
-
-// RENDERIZAR TABULEIRO COM AGENTES - VERSÃO MELHORADA
-function renderizarTabuleiroComAgentes(matriz, posicoes_agentes) {
-    grid.innerHTML = '';
-    
-    // Criar mapa de agentes por posição
-    const mapaAgentes = {};
-    posicoes_agentes.forEach(ag => {
-        const chave = `${ag.posicao[0]},${ag.posicao[1]}`;
-        if (!mapaAgentes[chave]) mapaAgentes[chave] = [];
-        mapaAgentes[chave].push(ag);
-    });
-    
-    // Renderizar células
-    matriz.forEach((linha, i) => {
-        linha.forEach((celula, j) => {
-            const cell = document.createElement('div');
-            cell.className = `cell ${celula} revealed`;
-            cell.dataset.row = i;
-            cell.dataset.col = j;
-            
-            // Adicionar emoji baseado no tipo de célula
-            let emoji = '';
-            switch(celula) {
-                case 'L': emoji = ' '; break;
-                case 'B': emoji = '💣'; break;
-                case 'T': emoji = '💰'; break;
-                case 'F': emoji = '🚩'; break;
-            }
-            
-            const chave = `${i},${j}`;
-            const agentesAqui = mapaAgentes[chave] || [];
-            
-            if (agentesAqui.length > 0) {
-                // Criar container para agentes
-                const agentContainer = document.createElement('div');
-                agentContainer.className = 'agent-container';
-                
-                // Adicionar ícones dos agentes
-                agentesAqui.forEach((ag, idx) => {
-                    const agentIcon = document.createElement('div');
-                    agentIcon.className = `agent-icon g${ag.grupo} ${agentesAqui.length > 1 ? 'multiple' : ''}`;
-                    agentIcon.textContent = getAgentEmoji(ag.grupo);
-                    agentIcon.title = `Grupo ${ag.grupo} - Agente ${ag.id}`;
-                    agentIcon.style.transform = `translate(${(idx - (agentesAqui.length-1)/2) * 8}px, ${(idx - (agentesAqui.length-1)/2) * 8}px)`;
-                    agentContainer.appendChild(agentIcon);
-                });
-                
-                cell.appendChild(agentContainer);
-                
-                // Se tiver muitos agentes, mostrar contador
-                if (agentesAqui.length > 1) {
-                    const agentCount = document.createElement('div');
-                    agentCount.className = 'agent-count';
-                    agentCount.textContent = agentesAqui.length;
-                    cell.appendChild(agentCount);
-                }
-                
-                cell.textContent = '';
-            } else {
-                cell.textContent = emoji;
-                cell.title = getCellTitle(celula);
-            }
-            
-            grid.appendChild(cell);
-        });
+// ✅ NOVO: Botão Pausar
+const btnPausar = document.getElementById('btn-pausar');
+if (btnPausar) {
+    btnPausar.addEventListener('click', () => {
+        simulacaoEmPausa = !simulacaoEmPausa;
+        btnPausar.textContent = simulacaoEmPausa ? '▶️ Continuar' : '⏸️ Pausar';
+        btnPausar.classList.toggle('btn-pausado');
     });
 }
 
-function getAgentEmoji(grupo) {
-    switch(grupo) {
-        case 1: return '🌸';
-        case 2: return '💎';
-        case 3: return '🌿';
-        default: return '🤖';
-    }
-}
-
-function getCellTitle(tipo) {
-    switch(tipo) {
-        case 'L': return 'Posição Livre';
-        case 'B': return 'Bomba!';
-        case 'T': return 'Tesouro!';
-        case 'F': return 'Bandeira Final';
-        default: return 'Desconhecido';
-    }
-}
-
-function atualizarMetricas(grupos) {
-    grupos.forEach(g => {
-        const vivosElem = document.getElementById(`g${g.grupo}-vivos`);
-        const tesourosElem = document.getElementById(`g${g.grupo}-tesouros`);
-        
-        vivosElem.textContent = g.vivos;
-        tesourosElem.textContent = g.tesouros;
-        
-        // Animar mudanças
-        vivosElem.style.transform = 'scale(1.2)';
-        tesourosElem.style.transform = 'scale(1.2)';
-        setTimeout(() => {
-            vivosElem.style.transform = 'scale(1)';
-            tesourosElem.style.transform = 'scale(1)';
-        }, 300);
+// ✅ NOVO: Botão Parar
+const btnParar = document.getElementById('btn-parar');
+if (btnParar) {
+    btnParar.addEventListener('click', () => {
+        pararSimulacao();
     });
 }
 
-// SIMULAR EM TEMPO REAL
-btnSimular.addEventListener('click', async () => {
-    const validacao = validarAlgoritmos();
-    if (!validacao.valido) {
-        mostrarMensagem(validacao.erro, 'erro');
+function pararSimulacao() {
+    simulacaoAtiva = false;
+    simulacaoEmPausa = false;
+    if (intervaloAnimacao) {
+        clearInterval(intervaloAnimacao);
+        intervaloAnimacao = null;
+    }
+    
+    document.getElementById('btn-simular').disabled = false;
+    const btnPausar = document.getElementById('btn-pausar');
+    const btnParar = document.getElementById('btn-parar');
+    if (btnPausar) btnPausar.disabled = true;
+    if (btnParar) btnParar.disabled = true;
+    
+    adicionarLog('🛑 Simulação interrompida pelo usuário');
+}
+
+async function iniciarSimulacao() {
+    if (simulacaoAtiva) return;
+    
+    // Obter configurações
+    const abordagem = document.querySelector('.mini-btn[data-value].active')?.dataset.value || 'A';
+    const numAgentes = parseInt(document.getElementById('num-agentes').value);
+    const percentagemBombas = parseInt(document.getElementById('percentagem-bombas').value);
+    
+    const alg_g2 = Array.from(document.querySelectorAll('input[name="g2"]:checked')).map(cb => cb.value);
+    const alg_g3 = Array.from(document.querySelectorAll('input[name="g3"]:checked')).map(cb => cb.value);
+    
+    // Validar
+    if (alg_g2.length > 0 && alg_g3.length > 0 && 
+        JSON.stringify(alg_g2.sort()) === JSON.stringify(alg_g3.sort())) {
+        mostrarMensagem('❌ Erro: Algoritmos dos grupos 2 e 3 devem ser diferentes!', 'erro');
         return;
     }
     
-    btnSimular.disabled = true;
-    btnMultiplas.disabled = true;
-    simulacaoAtiva = true;
-    passoAtual = 0;
-    logs = [`[${new Date().toLocaleTimeString()}] 🚀 Iniciando simulação...`];
-    atualizarLogs();
-    
-    status.textContent = '🎬 Iniciando simulação...';
-    status.style.background = '#fff1b8';
-    status.style.color = '#f57f17';
-    
-    const config = obterConfiguracao();
+    limparLogs();
+    adicionarLog('🚀 Iniciando simulação...');
     
     try {
-        // 1. CRIAR SIMULAÇÃO
-        const respInicial = await fetch(`${API_URL}/simular_tempo_real`, {
+        // Criar simulação
+        const response = await fetch(`${API_URL}/simular_tempo_real`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config)
+            body: JSON.stringify({
+                abordagem,
+                num_agentes: numAgentes,
+                percentagem_bombas: percentagemBombas,
+                algoritmos_grupo2: alg_g2,
+                algoritmos_grupo3: alg_g3
+            })
         });
         
-        if (!respInicial.ok) {
-            throw new Error(`Erro ${respInicial.status}: ${respInicial.statusText}`);
+        const estadoInicial = await response.json();
+        
+        if (estadoInicial.erro) {
+            mostrarMensagem(`❌ ${estadoInicial.erro}`, 'erro');
+            return;
         }
         
-        const estadoInicial = await respInicial.json();
-        console.log('Estado inicial:', estadoInicial);
+        simulacaoAtiva = true;
+        simulacaoEmPausa = false;
         
-        renderizarTabuleiroComAgentes(estadoInicial.tabuleiro, estadoInicial.posicoes_agentes);
-        atualizarMetricas(estadoInicial.grupos);
+        // Habilitar controles
+        document.getElementById('btn-simular').disabled = true;
+        const btnPausar = document.getElementById('btn-pausar');
+        const btnParar = document.getElementById('btn-parar');
+        if (btnPausar) btnPausar.disabled = false;
+        if (btnParar) btnParar.disabled = false;
         
-        status.textContent = '⏳ Simulando passo a passo...';
-        status.style.color = '#6b5ca5';
+        // Renderizar estado inicial
+        renderizarEstado(estadoInicial);
+        adicionarLog(`✅ Simulação criada | Abordagem ${abordagem} | ${numAgentes} agentes por grupo`);
         
-        logs.push(`[INFO] Tabuleiro: ${estadoInicial.tabuleiro.length}x${estadoInicial.tabuleiro[0].length}`);
-        logs.push(`[INFO] ${estadoInicial.posicoes_agentes.length} agentes iniciados`);
-        atualizarLogs();
+        // Iniciar animação
+        intervaloAnimacao = setInterval(async () => {
+            if (!simulacaoEmPausa && simulacaoAtiva) {
+                await executarProximoPasso();
+            }
+        }, 300); // 300ms entre passos
         
-        // 2. EXECUTAR PASSOS
-        const executarPasso = async () => {
-            try {
-                const respPasso = await fetch(`${API_URL}/proximo_passo`, { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+    } catch (error) {
+        mostrarMensagem(`❌ Erro: ${error.message}`, 'erro');
+        adicionarLog(`❌ Erro: ${error.message}`);
+    }
+}
+
+async function executarProximoPasso() {
+    try {
+        const response = await fetch(`${API_URL}/proximo_passo`, {
+            method: 'POST'
+        });
+        
+        const estado = await response.json();
+        
+        if (estado.erro) {
+            pararSimulacao();
+            mostrarMensagem(`❌ ${estado.erro}`, 'erro');
+            return;
+        }
+        
+        renderizarEstado(estado);
+        
+        // Se completou
+        if (estado.completo) {
+            pararSimulacao();
+            
+            if (estado.sucesso) {
+                const grupoVencedor = estado.grupo_vencedor;
+                mostrarMensagem(`🏆 VITÓRIA DO GRUPO ${grupoVencedor}! ${estado.razao}`, 'sucesso');
+                adicionarLog(`🏆 GRUPO ${grupoVencedor} VENCEU: ${estado.razao}`);
+            } else {
+                mostrarMensagem(`💀 ${estado.razao}`, 'erro');
+                adicionarLog(`💀 ${estado.razao}`);
+            }
+            
+            // Mostrar estatísticas finais
+            mostrarEstatisticasFinais(estado);
+        }
+        
+    } catch (error) {
+        pararSimulacao();
+        mostrarMensagem(`❌ Erro: ${error.message}`, 'erro');
+    }
+}
+
+function renderizarEstado(estado) {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    
+    const tabuleiro = estado.tabuleiro;
+    const agentes = estado.agentes || [];
+    
+    // Criar grid 10x10
+    for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
+            const celula = document.createElement('div');
+            celula.className = 'celula';
+            celula.dataset.pos = `${i},${j}`;
+            
+            const tipo = tabuleiro[i][j];
+            celula.classList.add(`tipo-${tipo}`);
+            
+            // ✅ VISUALIZAR AGENTES
+            const agentesNaCelula = agentes.filter(a => a.posicao[0] === i && a.posicao[1] === j);
+            
+            if (agentesNaCelula.length > 0) {
+                const containerAgentes = document.createElement('div');
+                containerAgentes.className = 'agentes-container';
+                
+                agentesNaCelula.forEach(agente => {
+                    const agenteDiv = document.createElement('div');
+                    agenteDiv.className = 'agente';
+                    agenteDiv.style.backgroundColor = CORES_GRUPOS[agente.grupo];
+                    agenteDiv.title = `Grupo ${agente.grupo} | Agente ${agente.id} | Tesouros: ${agente.tesouros}`;
+                    
+                    // Mostrar imunidade
+                    if (agente.imunidades > 0) {
+                        agenteDiv.classList.add('com-escudo');
+                        const escudo = document.createElement('span');
+                        escudo.className = 'escudo';
+                        escudo.textContent = agente.imunidades;
+                        agenteDiv.appendChild(escudo);
+                    }
+                    
+                    containerAgentes.appendChild(agenteDiv);
                 });
                 
-                if (!respPasso.ok) {
-                    throw new Error(`Erro ${respPasso.status} no passo`);
-                }
-                
-                const estado = await respPasso.json();
-                
-                passoAtual++;
-                console.log(`Passo ${passoAtual}:`, estado.posicoes_agentes.length, 'agentes vivos');
-                
-                renderizarTabuleiroComAgentes(estado.tabuleiro, estado.posicoes_agentes);
-                atualizarMetricas(estado.grupos);
-                
-                status.textContent = `⏳ Passo ${passoAtual}... ${estado.posicoes_agentes.length} agentes vivos`;
-                status.style.background = '#e0f7e9';
-                
-                logs.push(`[PASSO ${passoAtual}] ${estado.posicoes_agentes.length} agentes, ${estado.grupos.reduce((a, g) => a + g.tesouros, 0)} tesouros`);
-                atualizarLogs();
-                
-                if (estado.completo) {
-                    clearInterval(intervaloAnimacao);
-                    simulacaoAtiva = false;
-                    
-                    status.textContent = estado.sucesso ? '✅ Sucesso!' : '❌ Falhou';
-                    status.style.background = estado.sucesso ? '#e0f7e9' : '#ffd6d6';
-                    status.style.color = estado.sucesso ? '#1b5e20' : '#c62828';
-                    
-                    mostrarMensagem(`Simulação concluída: ${estado.razao}`, 'sucesso');
-                    btnSimular.disabled = false;
-                    btnMultiplas.disabled = false;
-                    
-                    // Mostrar resultados
-                    resultadosDiv.style.display = 'block';
-                    const resultadoHTML = `
-                        <div class="card">
-                            <h4>${estado.sucesso ? '🎉 Sucesso!' : '😞 Falha'}</h4>
-                            <p><strong>Resultado:</strong> ${estado.razao}</p>
-                            <p><strong>Passos totais:</strong> ${passoAtual}</p>
-                            <p><strong>Agentes sobreviventes:</strong> ${estado.posicoes_agentes.length}</p>
-                            <p><strong>Tesouros coletados:</strong> ${estado.grupos.reduce((a, g) => a + g.tesouros, 0)}</p>
-                        </div>
-                    `;
-                    document.getElementById('resultado-conteudo').innerHTML = resultadoHTML;
-                    
-                    // Log final
-                    logs.push(`[FIM] ${estado.sucesso ? 'Sucesso' : 'Falha'}: ${estado.razao}`);
-                    logs.push(`[FIM] Passos: ${passoAtual}, Sobreviventes: ${estado.posicoes_agentes.length}`);
-                    atualizarLogs();
-                }
-            } catch (erro) {
-                console.error('Erro no passo:', erro);
-                logs.push(`[ERRO] ${erro.message}`);
-                atualizarLogs();
+                celula.appendChild(containerAgentes);
             }
-        };
-        
-        // Executar a cada 400ms (um pouco mais lento para melhor visualização)
-        intervaloAnimacao = setInterval(executarPasso, 400);
-        
-    } catch (erro) {
-        console.error('ERRO:', erro);
-        mostrarMensagem('Erro na conexão: ' + erro.message, 'erro');
-        btnSimular.disabled = false;
-        btnMultiplas.disabled = false;
-        if (intervaloAnimacao) clearInterval(intervaloAnimacao);
+            
+            // Ícone do tipo de célula (menor se houver agentes)
+            const icone = document.createElement('span');
+            icone.className = 'icone-tipo';
+            if (agentesNaCelula.length > 0) {
+                icone.style.fontSize = '10px';
+                icone.style.opacity = '0.5';
+            }
+            
+            switch(tipo) {
+                case 'L': icone.textContent = ''; break;
+                case 'B': icone.textContent = '💣'; break;
+                case 'T': icone.textContent = '💎'; break;
+                case 'F': icone.textContent = '🚩'; break;
+            }
+            celula.appendChild(icone);
+            
+            grid.appendChild(celula);
+        }
     }
-});
+    
+    // Atualizar métricas
+    if (estado.grupos) {
+        estado.grupos.forEach(g => {
+            document.getElementById(`g${g.grupo}-vivos`).textContent = `${g.vivos}/${g.total}`;
+            document.getElementById(`g${g.grupo}-tesouros`).textContent = g.tesouros;
+            const celuasEl = document.getElementById(`g${g.grupo}-celulas`);
+            if (celuasEl) celuasEl.textContent = g.celulas_exploradas;
+        });
+    }
+    
+    // ✅ NOVO: Processar e mostrar eventos nos logs
+    if (estado.eventos && estado.eventos.length > 0) {
+        estado.eventos.forEach(evento => {
+            let logMsg = '';
+            const grupoEmoji = evento.grupo === 1 ? '🌸' : evento.grupo === 2 ? '💎' : '🌿';
+            
+            switch(evento.tipo) {
+                case 'movimento':
+                    const emojiCelula = {
+                        'livre': '✅',
+                        'tesouro': '💎',
+                        'bomba_desativada': '🛡️',
+                        'bandeira': '🚩'
+                    }[evento.evento_celula] || '➡️';
+                    
+                    logMsg = `${grupoEmoji} G${evento.grupo} A${evento.agente}: (${evento.de[0]},${evento.de[1]}) → (${evento.para[0]},${evento.para[1]}) ${emojiCelula}`;
+                    
+                    if (evento.evento_celula === 'tesouro') {
+                        logMsg += ' [+1 Tesouro]';
+                    } else if (evento.evento_celula === 'bomba_desativada') {
+                        logMsg += ' [Bomba desativada]';
+                    } else if (evento.evento_celula === 'bandeira') {
+                        logMsg += ' [BANDEIRA ENCONTRADA!]';
+                    }
+                    break;
+                    
+                case 'morte':
+                    logMsg = `${grupoEmoji} G${evento.grupo} A${evento.agente}: ☠️ MORREU em (${evento.para[0]},${evento.para[1]})`;
+                    break;
+                    
+                case 'sem_movimento':
+                    logMsg = `${grupoEmoji} G${evento.grupo} A${evento.agente}: ⏸️ Parado em (${evento.posicao[0]},${evento.posicao[1]}) - ${evento.razao}`;
+                    break;
+            }
+            
+            if (logMsg) {
+                adicionarLog(logMsg);
+            }
+        });
+    }
+    
+    // Atualizar status
+    document.getElementById('status').textContent = 
+        `Passo ${estado.passo} | ${simulacaoEmPausa ? '⏸️ PAUSADO' : '▶️ Em execução'}`;
+}
 
-// Nova simulação
-btnNova.addEventListener('click', () => {
-    if (intervaloAnimacao) clearInterval(intervaloAnimacao);
+function mostrarEstatisticasFinais(estado) {
+    const panel = document.getElementById('resultados');
+    const conteudo = document.getElementById('resultado-conteudo');
     
-    resultadosDiv.style.display = 'none';
-    status.textContent = 'Aguardando configuração...';
-    status.style.background = 'white';
-    status.style.color = '#555';
-    grid.innerHTML = '';
-    logs = ['[SISTEMA] Pronto para nova simulação'];
-    atualizarLogs();
+    let html = '<div class="stats-finais">';
     
-    // Resetar métricas
-    [1, 2, 3].forEach(g => {
-        document.getElementById(`g${g}-vivos`).textContent = '-';
-        document.getElementById(`g${g}-tesouros`).textContent = '-';
+    html += `<div class="stat-destaque">`;
+    html += `<h4>⏱️ Tempo Total</h4>`;
+    html += `<p>${estado.tempo_segundos?.toFixed(2) || '0.00'}s</p>`;
+    html += `</div>`;
+    
+    html += `<div class="stat-destaque">`;
+    html += `<h4>📊 Passos Executados</h4>`;
+    html += `<p>${estado.passos}</p>`;
+    html += `</div>`;
+    
+    // Detalhes por grupo
+    estado.grupos.forEach(g => {
+        const emoji = g.grupo === 1 ? '🌸' : g.grupo === 2 ? '💎' : '🌿';
+        const vencedor = g.grupo === estado.grupo_vencedor;
+        
+        html += `<div class="grupo-stats ${vencedor ? 'vencedor' : ''}">`;
+        html += `<h4>${emoji} Grupo ${g.grupo} ${vencedor ? '👑' : ''}</h4>`;
+        html += `<p>Vivos: ${g.vivos}/${g.total}</p>`;
+        html += `<p>Tesouros: ${g.tesouros}</p>`;
+        html += `<p>Células: ${g.celulas_exploradas}</p>`;
+        
+        // ✅ Detalhes dos agentes
+        if (g.agentes) {
+            html += `<div class="agentes-detalhes">`;
+            g.agentes.forEach(a => {
+                const status = a.vivo ? '✅' : '💀';
+                html += `<small>${status} Agente ${a.id}: ${a.tesouros}💎`;
+                if (!a.vivo && a.posicao_morte) {
+                    html += ` (morreu em ${a.posicao_morte[0]},${a.posicao_morte[1]})`;
+                }
+                html += `</small><br>`;
+            });
+            html += `</div>`;
+        }
+        
+        html += `</div>`;
     });
     
-    simulacaoAtiva = false;
-    passoAtual = 0;
-});
-
-// Executar múltiplas simulações
-btnMultiplas.addEventListener('click', async () => {
-    mostrarMensagem('Funcionalidade de múltiplas simulações será implementada na próxima versão', 'sucesso');
-});
-
-// Inicialização
-document.addEventListener('DOMContentLoaded', () => {
-    logs.push('[SISTEMA] Interface de Exploração Colaborativa carregada');
-    logs.push('[SISTEMA] Conectando ao servidor...');
-    atualizarLogs();
+    html += '</div>';
     
-    // Testar conexão com API
-    fetch(`${API_URL}/health`)
-        .then(res => logs.push('[SISTEMA] Conexão com API estabelecida'))
-        .catch(() => logs.push('[ALERTA] API não disponível em localhost:5000'))
-        .finally(atualizarLogs);
-});
+    conteudo.innerHTML = html;
+    panel.style.display = 'block';
+}
 
-console.log('Interface de Exploração Colaborativa carregada com design premium!');
+function mostrarMensagem(texto, tipo = 'info') {
+    const div = document.getElementById('mensagem');
+    div.textContent = texto;
+    div.className = `mensagem ${tipo}`;
+    div.style.display = 'block';
+    
+    setTimeout(() => {
+        div.style.display = 'none';
+    }, 5000);
+}
+
+function adicionarLog(texto) {
+    const logs = document.getElementById('logs');
+    const timestamp = new Date().toLocaleTimeString();
+    const linha = document.createElement('div');
+    linha.textContent = `[${timestamp}] ${texto}`;
+    logs.appendChild(linha);
+    logs.scrollTop = logs.scrollHeight;
+}
+
+function limparLogs() {
+    document.getElementById('logs').innerHTML = '';
+}
+
+function setBombas(valor) {
+    document.getElementById('percentagem-bombas').value = valor;
+    document.getElementById('bombas-valor').textContent = `${valor}%`;
+}
+
+// Nova simulação
+const btnNova = document.getElementById('btn-nova');
+if (btnNova) {
+    btnNova.addEventListener('click', () => {
+        location.reload();
+    });
+}

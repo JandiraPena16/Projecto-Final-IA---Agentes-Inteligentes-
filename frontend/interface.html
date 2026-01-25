@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exploração Colaborativa</title>
+    <title>Exploração Colaborativa - IA 2024/25</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
     <div class="app">
         <div class="main-content">
-            <h1>Exploração Colaborativa</h1>
+            <h1>🤖 Exploração Colaborativa com Agentes</h1>
             
             <div class="legend">
-                🌸 Grupo 1 - Baseline | 💎 Grupo 2 - Aprendizagem | 🌿 Grupo 3 - Comunicação
+                🌸 Grupo 1 - BFS Puro | 💎 Grupo 2 - BFS + ML | 🌿 Grupo 3 - BFS + ML
             </div>
 
             <div class="controls">
@@ -27,24 +27,24 @@
                 </div>
 
                 <div class="control-group">
-                    <label>Número de Agentes: <span id="num-valor">3</span></label>
+                    <label>Número de Agentes por Grupo: <span id="num-valor">3</span></label>
                     <input type="range" id="num-agentes" min="1" max="10" value="3" class="slider">
                 </div>
 
                 <div class="control-group">
-                    <label>Bombas: <span id="bombas-valor">50%</span></label>
+                    <label>Percentagem de Bombas: <span id="bombas-valor">50%</span></label>
                     <div class="btn-group">
-                        <button class="mini-btn" onclick="setBombas(50)">50%</button>
+                        <button class="mini-btn" onclick="setBombas(20)">20%</button>
+                        <button class="mini-btn" onclick="setBombas(40)">40%</button>
                         <button class="mini-btn" onclick="setBombas(60)">60%</button>
-                        <button class="mini-btn" onclick="setBombas(70)">70%</button>
                         <button class="mini-btn" onclick="setBombas(80)">80%</button>
                     </div>
-                    <input type="range" id="percentagem-bombas" min="0" max="100" step="5" value="50" class="slider">
+                    <input type="range" id="percentagem-bombas" min="1" max="80" step="1" value="50" class="slider">
                 </div>
 
                 <div class="algoritmos">
                     <div class="algoritmo-group">
-                        <h3>Grupo 2</h3>
+                        <h3>Grupo 2 - Algoritmos</h3>
                         <label><input type="checkbox" name="g2" value="SVM"> SVM</label>
                         <label><input type="checkbox" name="g2" value="ARVORE_DECISAO"> Árvore</label>
                         <label><input type="checkbox" name="g2" value="PERCEPTRON"> Perceptron</label>
@@ -52,7 +52,7 @@
                     </div>
 
                     <div class="algoritmo-group">
-                        <h3>Grupo 3</h3>
+                        <h3>Grupo 3 - Algoritmos</h3>
                         <label><input type="checkbox" name="g3" value="SVM"> SVM</label>
                         <label><input type="checkbox" name="g3" value="ARVORE_DECISAO"> Árvore</label>
                         <label><input type="checkbox" name="g3" value="PERCEPTRON"> Perceptron</label>
@@ -62,7 +62,8 @@
 
                 <div class="action-buttons">
                     <button id="btn-simular" class="main-btn btn-a">▶️ Iniciar Simulação</button>
-                    <button id="btn-multiplas" class="main-btn btn-b">📊 Executar 30×</button>
+                    <button id="btn-pausar" class="main-btn btn-c" disabled>⏸️ Pausar</button>
+                    <button id="btn-parar" class="main-btn btn-b" disabled>⏹️ Parar</button>
                 </div>
             </div>
 
@@ -75,6 +76,9 @@
                 <span><span class="cel B"></span> Bomba</span>
                 <span><span class="cel T"></span> Tesouro</span>
                 <span><span class="cel F"></span> Bandeira</span>
+                <span style="margin-left: 20px;">🌸 Grupo 1</span>
+                <span>💎 Grupo 2</span>
+                <span>🌿 Grupo 3</span>
             </div>
         </div>
 
@@ -85,34 +89,37 @@
             </div>
 
             <div class="panel">
-                <h3>📈 Métricas</h3>
+                <h3>📈 Métricas dos Grupos</h3>
                 <div class="metricas-cards">
-                    <div class="card">
+                    <div class="card card-grupo1">
                         <h4>🌸 Grupo 1</h4>
                         <p>Vivos: <span id="g1-vivos">-</span></p>
                         <p>Tesouros: <span id="g1-tesouros">-</span></p>
+                        <p>Células: <span id="g1-celulas">-</span></p>
                     </div>
-                    <div class="card">
+                    <div class="card card-grupo2">
                         <h4>💎 Grupo 2</h4>
                         <p>Vivos: <span id="g2-vivos">-</span></p>
                         <p>Tesouros: <span id="g2-tesouros">-</span></p>
+                        <p>Células: <span id="g2-celulas">-</span></p>
                     </div>
-                    <div class="card">
+                    <div class="card card-grupo3">
                         <h4>🌿 Grupo 3</h4>
                         <p>Vivos: <span id="g3-vivos">-</span></p>
                         <p>Tesouros: <span id="g3-tesouros">-</span></p>
+                        <p>Células: <span id="g3-celulas">-</span></p>
                     </div>
                 </div>
             </div>
 
             <div class="panel" id="resultados" style="display:none;">
-                <h3>🏆 Resultados</h3>
+                <h3>🏆 Resultados Finais</h3>
                 <div id="resultado-conteudo"></div>
                 <button id="btn-nova" class="main-btn btn-c" style="margin-top: 15px;">🔄 Nova Simulação</button>
             </div>
 
             <div class="panel">
-                <h3>📋 Logs</h3>
+                <h3>📋 Logs da Simulação</h3>
                 <div id="logs" class="logs"></div>
             </div>
         </div>

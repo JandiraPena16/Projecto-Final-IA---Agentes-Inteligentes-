@@ -2,7 +2,8 @@
 
 import time
 import random
-from typing import Dict, List
+from typing import Dict, List, Tuple, Set
+from collections import deque
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -46,21 +47,40 @@ class Simulador:
         self.razao = ""
         self.tempo_inicio = None
         self.tempo_fim = None
+        self.grupo_vencedor = None  # ✅ NOVO: rastrear grupo vencedor
     
     def _criar_grupos(self, config: Dict) -> List[Grupo]:
         """Cria os 3 grupos"""
         print("\n=== CRIAR GRUPOS ===")
         grupos = []
         
-        # Posições iniciais
-        posicoes_livres = [(i, j) for i in range(TAMANHO_TABULEIRO) 
-                          for j in range(TAMANHO_TABULEIRO)
-                          if self.tabuleiro.matriz[i][j] == TIPO_LIVRE]
+        # ✅ CORREÇÃO: Todos agentes começam em (0,0)
+        # Garantir que (0,0) seja livre
+        if self.tabuleiro.matriz[0][0] != TIPO_LIVRE:
+            # Se (0,0) não for livre, trocar com uma posição livre
+            for i in range(TAMANHO_TABULEIRO):
+                for j in range(TAMANHO_TABULEIRO):
+                    if self.tabuleiro.matriz[i][j] == TIPO_LIVRE:
+                        # Trocar conteúdos
+                        temp = self.tabuleiro.matriz[0][0]
+                        self.tabuleiro.matriz[0][0] = TIPO_LIVRE
+                        self.tabuleiro.matriz[i][j] = temp
+                        
+                        # Atualizar registros
+                        if temp == TIPO_BOMBA:
+                            self.tabuleiro.posicoes_bombas.discard((0, 0))
+                            self.tabuleiro.posicoes_bombas.add((i, j))
+                        elif temp == TIPO_TESOURO:
+                            self.tabuleiro.posicoes_tesouros.discard((0, 0))
+                            self.tabuleiro.posicoes_tesouros.add((i, j))
+                        elif temp == TIPO_BANDEIRA:
+                            self.tabuleiro.posicao_bandeira = (i, j)
+                        break
+                if self.tabuleiro.matriz[0][0] == TIPO_LIVRE:
+                    break
         
-        print(f"Posições livres disponíveis: {len(posicoes_livres)}")
-        random.shuffle(posicoes_livres)
-        
-        idx = 0
+        posicao_inicial = (0, 0)
+        print(f"✅ Posição inicial confirmada: {posicao_inicial}")
         
         for num_grupo in [1, 2, 3]:
             print(f"\n--- Grupo {num_grupo} ---")
@@ -76,15 +96,9 @@ class Simulador:
             print(f"Algoritmos ML: {[alg.nome if hasattr(alg, 'nome') else str(type(alg)) for alg in algoritmos_ml]}")
             
             for i in range(self.num_agentes):
-                if idx < len(posicoes_livres):
-                    pos = posicoes_livres[idx]
-                    idx += 1
-                else:
-                    pos = random.choice(posicoes_livres)
+                print(f"  Agente {i}: posição inicial {posicao_inicial}")
                 
-                print(f"  Agente {i}: posição inicial {pos}")
-                
-                agente = Agente(i, num_grupo, pos)
+                agente = Agente(i, num_grupo, posicao_inicial)
                 agente.definir_algoritmos(algoritmos_ml)
                 agentes.append(agente)
             
@@ -133,19 +147,37 @@ class Simulador:
         if self.passo == 1:
             print(f"\nGrupo {grupo.numero}: {len(agentes_vivos)} agentes vivos")
         
+        eventos = []  # ✅ NOVO: Registrar eventos para logs
+        
         for agente in agentes_vivos:
             bfs = BuscaEmLargura(self.tabuleiro)
             
             todas_visitadas = agente.celulas_visitadas | grupo.conhecimento.celulas_exploradas
             candidatas = bfs.obter_candidatas(agente.posicao, todas_visitadas, grupo.numero)
             
+            # ✅ NOVO: Se não há candidatas adjacentes, tentar busca expandida
             if not candidatas:
-                if self.passo <= 5:
-                    print(f"  Agente {agente.id} (G{grupo.numero}): sem candidatas")
-                continue
+                candidatas = self._busca_expandida(agente.posicao, todas_visitadas, grupo.numero)
+                
+                if not candidatas:
+                    eventos.append({
+                        'tipo': 'sem_movimento',
+                        'grupo': grupo.numero,
+                        'agente': agente.id,
+                        'posicao': agente.posicao,
+                        'razao': 'Sem células disponíveis para explorar'
+                    })
+                    continue
             
             proxima = agente.decidir_proxima_celula(candidatas, self.tabuleiro)
             if not proxima:
+                eventos.append({
+                    'tipo': 'sem_movimento',
+                    'grupo': grupo.numero,
+                    'agente': agente.id,
+                    'posicao': agente.posicao,
+                    'razao': 'ML não conseguiu decidir'
+                })
                 continue
             
             pos_anterior = agente.posicao
@@ -153,11 +185,58 @@ class Simulador:
             tipo = self.tabuleiro.obter_tipo(proxima)
             resultado = agente.processar_celula(tipo, self.tabuleiro)
             
-            if self.passo <= 5:
-                print(f"  Agente {agente.id} (G{grupo.numero}): {pos_anterior} → {proxima} [{tipo}]")
+            # ✅ NOVO: Registrar evento de movimento
+            evento = {
+                'tipo': 'movimento',
+                'grupo': grupo.numero,
+                'agente': agente.id,
+                'de': pos_anterior,
+                'para': proxima,
+                'celula_tipo': tipo,
+                'evento_celula': resultado['evento']
+            }
             
             if not resultado['sobreviveu']:
+                evento['tipo'] = 'morte'
                 print(f"  ☠️ Agente {agente.id} (G{grupo.numero}) MORREU em {proxima}")
+            
+            eventos.append(evento)
+        
+        # ✅ NOVO: Armazenar eventos para enviar ao frontend
+        if not hasattr(self, 'eventos_passo'):
+            self.eventos_passo = []
+        self.eventos_passo = eventos
+    
+    def _busca_expandida(self, posicao: Tuple[int, int], visitadas: Set, grupo: int, raio: int = 3) -> List[Tuple[int, int]]:
+        """
+        ✅ NOVO: Busca expandida quando não há candidatas adjacentes
+        Procura em um raio maior (até 3 células de distância)
+        """
+        candidatas = []
+        fila = deque([(posicao, 0)])  # (posição, distância)
+        visitadas_busca = {posicao}
+        
+        while fila and len(candidatas) < 10:
+            pos_atual, dist = fila.popleft()
+            
+            if dist >= raio:
+                continue
+            
+            for vizinho in self.tabuleiro.obter_vizinhos(pos_atual):
+                if vizinho not in visitadas_busca:
+                    visitadas_busca.add(vizinho)
+                    
+                    # Se não foi visitada e não é bomba conhecida
+                    if vizinho not in visitadas:
+                        if vizinho not in self.tabuleiro.bombas_desativadas.get(grupo, set()):
+                            candidatas.append(vizinho)
+                    
+                    # Continuar busca através de células visitadas livres
+                    tipo = self.tabuleiro.obter_tipo(vizinho)
+                    if tipo == 'L' and vizinho in visitadas:
+                        fila.append((vizinho, dist + 1))
+        
+        return candidatas
     
     def _verificar_termino(self):
         """Verifica condições de término"""
@@ -168,42 +247,93 @@ class Simulador:
             self.razao = "Todos os agentes morreram"
             return
         
-        # Abordagem A
+        # Abordagem A: >50% tesouros
         if self.abordagem == ABORDAGEM_A:
-            total_tesouros = sum(self.tabuleiro.tesouros_coletados.values())
-            total_disponiveis = len(self.tabuleiro.posicoes_tesouros)
+            total_inicial = len(self.tabuleiro.posicoes_tesouros) + sum(self.tabuleiro.tesouros_coletados.values())
             
-            if total_disponiveis > 0 and total_tesouros > total_disponiveis * 0.5:
-                self.completo = True
-                self.sucesso = True
-                self.razao = f"Mais de 50% tesouros encontrados ({total_tesouros}/{total_disponiveis})"
-                return
-        
-        # Abordagem B
-        elif self.abordagem == ABORDAGEM_B:
-            total_exp = len(self.tabuleiro.celulas_exploradas[1] | 
-                           self.tabuleiro.celulas_exploradas[2] | 
-                           self.tabuleiro.celulas_exploradas[3])
-            
-            if total_exp == TAMANHO_TABULEIRO * TAMANHO_TABULEIRO:
-                if any(g.pelo_menos_um_vivo() for g in self.grupos):
+            for grupo in self.grupos:
+                tesouros_grupo = self.tabuleiro.tesouros_coletados[grupo.numero]
+                if total_inicial > 0 and tesouros_grupo > total_inicial * 0.5:
                     self.completo = True
                     self.sucesso = True
-                    self.razao = "Exploração completa com sobrevivente"
+                    self.grupo_vencedor = grupo.numero
+                    self.razao = f"Grupo {grupo.numero} encontrou >50% tesouros ({tesouros_grupo}/{total_inicial})"
                     return
         
-        # Abordagem C
+        # Abordagem B: Exploração completa
+        elif self.abordagem == ABORDAGEM_B:
+            total_celulas = TAMANHO_TABULEIRO * TAMANHO_TABULEIRO
+            
+            for grupo in self.grupos:
+                if grupo.pelo_menos_um_vivo():
+                    celulas_exploradas = len(grupo.conhecimento.celulas_exploradas)
+                    if celulas_exploradas >= total_celulas:
+                        self.completo = True
+                        self.sucesso = True
+                        self.grupo_vencedor = grupo.numero
+                        self.razao = f"Grupo {grupo.numero} explorou completamente ({celulas_exploradas}/{total_celulas})"
+                        return
+        
+        # Abordagem C: Encontrar bandeira
         elif self.abordagem == ABORDAGEM_C:
             for grupo in self.grupos:
                 if grupo.conhecimento.posicao_bandeira:
                     self.completo = True
                     self.sucesso = True
+                    self.grupo_vencedor = grupo.numero
                     self.razao = f"Grupo {grupo.numero} encontrou bandeira"
                     return
     
+    def obter_estado_atual(self) -> Dict:
+        """
+        ✅ ATUALIZADO: Retorna estado atual com eventos para logs detalhados
+        """
+        agentes_estado = []
+        
+        for grupo in self.grupos:
+            for agente in grupo.agentes:
+                if agente.vivo:
+                    agentes_estado.append({
+                        'id': agente.id,
+                        'grupo': agente.grupo,
+                        'posicao': agente.posicao,
+                        'vivo': agente.vivo,
+                        'imunidades': agente.imunidades,
+                        'tesouros': agente.tesouros_encontrados
+                    })
+        
+        stats_grupos = []
+        for g in self.grupos:
+            vivos = len(g.obter_vivos())
+            tesouros = sum(a.tesouros_encontrados for a in g.agentes)
+            celulas = len(g.conhecimento.celulas_exploradas)
+            
+            stats_grupos.append({
+                'grupo': g.numero,
+                'vivos': vivos,
+                'total': len(g.agentes),
+                'tesouros': tesouros,
+                'celulas_exploradas': celulas
+            })
+        
+        # ✅ NOVO: Incluir eventos do passo
+        eventos = getattr(self, 'eventos_passo', [])
+        
+        return {
+            'passo': self.passo,
+            'agentes': agentes_estado,
+            'grupos': stats_grupos,
+            'tabuleiro': self.tabuleiro.exportar_matriz(),
+            'completo': self.completo,
+            'sucesso': self.sucesso,
+            'razao': self.razao,
+            'grupo_vencedor': self.grupo_vencedor,
+            'eventos': eventos  # ✅ NOVO: Eventos para logs
+        }
+    
     def _gerar_resultado(self) -> Dict:
         """Gera resultado final"""
-        tempo = self.tempo_fim - self.tempo_inicio
+        tempo = self.tempo_fim - self.tempo_inicio if self.tempo_fim else 0
         
         stats_grupos = []
         for g in self.grupos:
@@ -212,12 +342,26 @@ class Simulador:
             tesouros = sum(a.tesouros_encontrados for a in g.agentes)
             celulas = len(g.conhecimento.celulas_exploradas)
             
+            # ✅ NOVO: Estatísticas detalhadas por agente
+            agentes_detalhes = []
+            for agente in g.agentes:
+                agentes_detalhes.append({
+                    'id': agente.id,
+                    'vivo': agente.vivo,
+                    'tesouros': agente.tesouros_encontrados,
+                    'bombas_acionadas': agente.bombas_acionadas,
+                    'celulas_visitadas': len(agente.celulas_visitadas),
+                    'posicao_morte': agente.posicao if not agente.vivo else None,
+                    'passo_morte': agente.passos if not agente.vivo else None
+                })
+            
             stats_grupos.append({
                 'grupo': g.numero,
                 'vivos': vivos,
                 'total': total,
                 'tesouros': tesouros,
-                'celulas_exploradas': celulas
+                'celulas_exploradas': celulas,
+                'agentes': agentes_detalhes  # ✅ NOVO
             })
             
             print(f"\nGrupo {g.numero} FINAL:")
@@ -228,6 +372,7 @@ class Simulador:
         resultado = {
             'sucesso': self.sucesso,
             'razao': self.razao,
+            'grupo_vencedor': self.grupo_vencedor,  # ✅ NOVO
             'tempo_segundos': tempo,
             'passos': self.passo,
             'grupos': stats_grupos,
@@ -237,3 +382,29 @@ class Simulador:
         print(f"\nTabuleiro exportado: {len(resultado['tabuleiro'])}x{len(resultado['tabuleiro'][0])}")
         
         return resultado
+    
+    def executar_passo(self) -> Dict:
+        """
+        ✅ NOVO: Executa um único passo da simulação
+        Retorna estado atual para animação em tempo real
+        """
+        if self.completo or self.passo >= 1000:
+            return self.obter_estado_atual()
+        
+        if self.passo == 0:
+            self.tempo_inicio = time.time()
+        
+        self.passo += 1
+        
+        # Executar passo para cada grupo
+        for grupo in self.grupos:
+            if not grupo.todos_mortos():
+                self._executar_passo_grupo(grupo)
+        
+        # Verificar condições de término
+        self._verificar_termino()
+        
+        if self.completo and not self.tempo_fim:
+            self.tempo_fim = time.time()
+        
+        return self.obter_estado_atual()

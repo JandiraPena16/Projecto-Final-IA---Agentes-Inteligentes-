@@ -105,7 +105,8 @@ class Agente:
         elif tipo == TIPO_TESOURO:
             self.imunidades += 1
             self.tesouros_encontrados += 1
-            tabuleiro.coletar_tesouro(self.grupo)
+            # ✅ CORRIGIDO: Passar posição para remover tesouro
+            tabuleiro.coletar_tesouro(self.posicao, self.grupo)
             resultado['evento'] = 'tesouro'
             self.conhecimento_grupo.registrar('tesouro', self.posicao)
         

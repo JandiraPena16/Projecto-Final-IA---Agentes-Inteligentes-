@@ -10,25 +10,25 @@ class BuscaEmLargura:
         self.tabuleiro = tabuleiro
     
     def obter_candidatas(self, posicao: Tuple[int, int], visitadas: Set, grupo: int) -> List[Tuple[int, int]]:
-        """Retorna células candidatas usando BFS"""
+        """
+        ✅ CORRIGIDO: Retorna APENAS vizinhos adjacentes (1 casa de distância)
+        Agentes só podem se mover para cima, baixo, esquerda ou direita
+        """
         candidatas = []
-        fila = deque([posicao])
-        visitadas_busca = {posicao}
         
-        while fila:
-            pos = fila.popleft()
-            for vizinho in self.tabuleiro.obter_vizinhos(pos):
-                if vizinho not in visitadas_busca:
-                    visitadas_busca.add(vizinho)
-                    
-                    if vizinho not in visitadas:
-                        # Verificar se não é bomba conhecida
-                        if vizinho not in self.tabuleiro.bombas_desativadas.get(grupo, set()):
-                            candidatas.append(vizinho)
-                    
-                    if vizinho in visitadas:
-                        tipo = self.tabuleiro.obter_tipo(vizinho)
-                        if tipo == 'L':
-                            fila.append(vizinho)
+        # Obter vizinhos diretos (apenas 4 direções, sem diagonal)
+        vizinhos = self.tabuleiro.obter_vizinhos(posicao)
+        
+        for vizinho in vizinhos:
+            # Não revisitar células já exploradas
+            if vizinho in visitadas:
+                continue
+            
+            # Verificar se não é bomba conhecida pelo grupo
+            if vizinho in self.tabuleiro.bombas_desativadas.get(grupo, set()):
+                continue
+            
+            # Adicionar à lista de candidatas
+            candidatas.append(vizinho)
         
         return candidatas

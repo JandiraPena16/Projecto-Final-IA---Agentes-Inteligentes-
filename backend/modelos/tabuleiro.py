@@ -107,12 +107,34 @@ class Tabuleiro:
         self.celulas_exploradas[grupo].add(posicao)
     
     def desativar_bomba(self, posicao: Tuple[int, int], grupo: int):
-        """Desativa bomba para grupo"""
+        """
+        ✅ CORRIGIDO: Desativa bomba APENAS para o grupo
+        - Bomba permanece no tabuleiro global
+        - Mas fica registrada como desativada para esse grupo específico
+        """
         self.bombas_desativadas[grupo].add(posicao)
+        
+        # Não remover da matriz global - outros grupos ainda veem como bomba
+        # Apenas registrar que este grupo a desativou
     
-    def coletar_tesouro(self, grupo: int):
-        """Incrementa tesouros do grupo"""
-        self.tesouros_coletados[grupo] += 1
+    def coletar_tesouro(self, posicao: Tuple[int, int], grupo: int):
+        """
+        ✅ CORRIGIDO: Remove tesouro do tabuleiro quando coletado
+        Tesouros só podem ser encontrados uma vez
+        """
+        if posicao in self.posicoes_tesouros:
+            # Remover tesouro do conjunto
+            self.posicoes_tesouros.discard(posicao)
+            
+            # Transformar célula em LIVRE
+            x, y = posicao
+            self.matriz[x][y] = TIPO_LIVRE
+            
+            # Incrementar contador do grupo
+            self.tesouros_coletados[grupo] += 1
+            
+            return True
+        return False
     
     def exportar_matriz(self):
         """Retorna cópia da matriz"""
