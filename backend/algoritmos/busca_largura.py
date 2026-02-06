@@ -9,34 +9,44 @@ class BuscaEmLargura:
     def __init__(self, tabuleiro):
         self.tabuleiro = tabuleiro
     
-    def obter_candidatas(self, posicao: Tuple[int, int], visitadas: Set, grupo: int, historico_recente: List = None) -> List[Tuple[int, int]]:
+    def obter_candidatas(self, posicao: Tuple[int, int], visitadas: Set, grupo: int, historico_recente: List = None, imunidades: int = 0) -> List[Tuple[int, int]]:
         """
-        ✅ CORRIGIDO: Prioriza células NÃO visitadas
+        Prioriza células NÃO visitadas
         - Retorna células NOVAS adjacentes primeiro
-        - Só retorna células já visitadas se NÃO houver novas (para passar)
+        - Se não há novas, permite revisitar células LIVRES já exploradas
+        - Se agente tem imunidade E não há candidatas, permite bombas
         """
         candidatas_novas = []
+        candidatas_livres_revisitadas = []
+        candidatas_bombas = []
         
-        # ✅ NOVO: Histórico recente para evitar loops
         if historico_recente is None:
             historico_recente = []
         
-        # Obter vizinhos diretos (apenas 4 direções, sem diagonal)
         vizinhos = self.tabuleiro.obter_vizinhos(posicao)
         
         for vizinho in vizinhos:
-            # Verificar se não é bomba conhecida pelo grupo
             if vizinho in self.tabuleiro.bombas_desativadas.get(grupo, set()):
                 continue
             
-            # ✅ PRIORIDADE: Células não visitadas
+            tipo_vizinho = self.tabuleiro.matriz[vizinho[0]][vizinho[1]]
+            
             if vizinho not in visitadas:
-                candidatas_novas.append(vizinho)
+                if tipo_vizinho == 'B':
+                    candidatas_bombas.append(vizinho)
+                else:
+                    candidatas_novas.append(vizinho)
+            elif tipo_vizinho == 'L' and vizinho in visitadas:
+                if vizinho not in historico_recente[-2:]:
+                    candidatas_livres_revisitadas.append(vizinho)
         
-        # ✅ Se há células NOVAS, retornar APENAS elas (não misturar com revisitadas)
         if candidatas_novas:
             return candidatas_novas
         
-        # ✅ FALLBACK: Se NÃO há células novas, permitir revisitar LIVRES (para passar)
-        # Mas usar busca expandida em vez de adjacentes
-        return []  # Retorna vazio → simulador vai chamar busca_expandida
+        if candidatas_livres_revisitadas:
+            return candidatas_livres_revisitadas
+        
+        if imunidades > 0 and candidatas_bombas:
+            return candidatas_bombas[:1]
+        
+        return []
