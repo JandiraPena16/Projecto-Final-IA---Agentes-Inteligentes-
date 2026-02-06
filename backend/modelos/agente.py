@@ -33,24 +33,78 @@ class Agente:
         self.algoritmos_ml = algoritmos
     
     def decidir_proxima_celula(self, candidatas: List[Tuple[int, int]], tabuleiro) -> Optional[Tuple[int, int]]:
-        """Decide próxima célula a explorar"""
+        """
+        ✅ NOVO: TODOS os agentes veem células adjacentes!
+        - Avalia cada candidata vendo o que tem ao redor
+        - Evita bombas, prefere tesouros
+        - Usa ML se disponível, senão usa heurística simples
+        """
         if not candidatas:
             return None
         
-        # Se não tem ML, escolhe primeira
-        if not self.algoritmos_ml:
-            return candidatas[0]
+        # Se tem ML, usar predições dos modelos
+        if self.algoritmos_ml:
+            scores = []
+            for celula in candidatas:
+                features = self._extrair_features(celula, tabuleiro)
+                score_total = sum(alg.prever(features) for alg in self.algoritmos_ml)
+                score_medio = score_total / len(self.algoritmos_ml)
+                scores.append((celula, score_medio))
+            
+            scores.sort(key=lambda x: x[1], reverse=True)
+            return scores[0][0]
         
-        # Com ML: avaliar candidatas
+        # ✅ SEM ML: Usar heurística baseada em visão
+        # Agora TODOS os agentes veem o que tem ao redor!
         scores = []
         for celula in candidatas:
-            features = self._extrair_features(celula, tabuleiro)
-            score_total = sum(alg.prever(features) for alg in self.algoritmos_ml)
-            score_medio = score_total / len(self.algoritmos_ml)
-            scores.append((celula, score_medio))
+            score = self._avaliar_celula_heuristica(celula, tabuleiro)
+            scores.append((celula, score))
         
+        # Ordenar por score (maior = melhor)
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[0][0]
+    
+    def _avaliar_celula_heuristica(self, celula: Tuple[int, int], tabuleiro) -> float:
+        """
+        ✅ NOVO: Heurística simples para agentes SEM ML
+        Agora BFS também vê células adjacentes!
+        """
+        x, y = celula
+        vizinhos = tabuleiro.obter_vizinhos(celula)
+        
+        score = 0.0
+        bombas_adj = 0
+        tesouros_adj = 0
+        livres_adj = 0
+        
+        # 👁️ OLHAR para o tabuleiro (ver vizinhos da candidata)
+        for vx, vy in vizinhos:
+            tipo = tabuleiro.matriz[vx][vy]
+            
+            if tipo == TIPO_BOMBA:
+                bombas_adj += 1
+            elif tipo == TIPO_TESOURO:
+                tesouros_adj += 1
+            elif tipo == TIPO_LIVRE:
+                livres_adj += 1
+        
+        # 🎯 HEURÍSTICA DE PONTUAÇÃO:
+        # - Tesouros adjacentes: +10 pontos cada
+        # - Livres adjacentes: +1 ponto cada
+        # - Bombas adjacentes: -5 pontos cada
+        # - Distância ao centro: -0.1 ponto por unidade
+        
+        score += tesouros_adj * 10.0   # MUITO bom!
+        score += livres_adj * 1.0       # Bom (caminho seguro)
+        score -= bombas_adj * 5.0       # RUIM (perigoso!)
+        
+        # Preferir células mais centrais (pequeno bônus)
+        centro = TAMANHO_TABULEIRO // 2
+        dist_centro = abs(x - centro) + abs(y - centro)
+        score -= dist_centro * 0.1
+        
+        return score
     
     def _extrair_features(self, celula: Tuple[int, int], tabuleiro) -> np.ndarray:
         """Extrai features da célula"""
