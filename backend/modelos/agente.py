@@ -32,9 +32,9 @@ class Agente:
         """Define algoritmos de ML"""
         self.algoritmos_ml = algoritmos
     
-    def decidir_proxima_celula(self, candidatas: List[Tuple[int, int]], tabuleiro) -> Optional[Tuple[int, int]]:
+    def decidir_proxima_celula(self, candidatas: List[Tuple[int, int]], tabuleiro, abordagem: str = None) -> Optional[Tuple[int, int]]:
         """
-        ✅ NOVO: TODOS os agentes veem células adjacentes!
+        NOVO: TODOS os agentes veem células adjacentes!
         - Avalia cada candidata vendo o que tem ao redor
         - Evita bombas, prefere tesouros
         - Usa ML se disponível, senão usa heurística simples
@@ -58,27 +58,50 @@ class Agente:
         # Agora TODOS os agentes veem o que tem ao redor!
         scores = []
         for celula in candidatas:
-            score = self._avaliar_celula_heuristica(celula, tabuleiro)
+            score = self._avaliar_celula_heuristica(celula, tabuleiro, abordagem)
             scores.append((celula, score))
         
         # Ordenar por score (maior = melhor)
         scores.sort(key=lambda x: x[1], reverse=True)
         return scores[0][0]
     
-    def _avaliar_celula_heuristica(self, celula: Tuple[int, int], tabuleiro) -> float:
-        """
-        ✅ NOVO: Heurística simples para agentes SEM ML
-        Agora BFS também vê células adjacentes!
-        """
+
+
+    def _avaliar_celula_heuristica(self, celula: Tuple[int, int], tabuleiro, abordagem: str = None) -> float:
         x, y = celula
-        vizinhos = tabuleiro.obter_vizinhos(celula)
         
-        score = 0.0
+        tipo_celula = tabuleiro.matriz[x][y]
+        
+        if tipo_celula == TIPO_BOMBA:
+            return -10000.0
+        
+        if abordagem == 'A':
+            if tipo_celula == TIPO_TESOURO:
+                return 10000.0
+            elif tipo_celula == TIPO_LIVRE:
+                return 100.0
+        
+        elif abordagem == 'B':
+            if tipo_celula == TIPO_TESOURO:
+                return 10000.0
+            elif tipo_celula == TIPO_LIVRE:
+                return 100.0
+        
+        elif abordagem == 'C':
+            if tipo_celula == TIPO_BANDEIRA:
+                return 100000.0
+            elif tipo_celula == TIPO_TESOURO:
+                return 10000.0
+            elif tipo_celula == TIPO_LIVRE:
+                return 100.0
+        
+        score = 100.0
+        
+        vizinhos = tabuleiro.obter_vizinhos(celula)
         bombas_adj = 0
         tesouros_adj = 0
         livres_adj = 0
         
-        # 👁️ OLHAR para o tabuleiro (ver vizinhos da candidata)
         for vx, vy in vizinhos:
             tipo = tabuleiro.matriz[vx][vy]
             
@@ -89,22 +112,19 @@ class Agente:
             elif tipo == TIPO_LIVRE:
                 livres_adj += 1
         
-        # 🎯 HEURÍSTICA DE PONTUAÇÃO:
-        # - Tesouros adjacentes: +10 pontos cada
-        # - Livres adjacentes: +1 ponto cada
-        # - Bombas adjacentes: -5 pontos cada
-        # - Distância ao centro: -0.1 ponto por unidade
+        score += tesouros_adj * 10.0
+        score += livres_adj * 1.0
+        score -= bombas_adj * 50.0
         
-        score += tesouros_adj * 10.0   # MUITO bom!
-        score += livres_adj * 1.0       # Bom (caminho seguro)
-        score -= bombas_adj * 5.0       # RUIM (perigoso!)
-        
-        # Preferir células mais centrais (pequeno bônus)
         centro = TAMANHO_TABULEIRO // 2
         dist_centro = abs(x - centro) + abs(y - centro)
         score -= dist_centro * 0.1
         
         return score
+
+
+
+
     
     def _extrair_features(self, celula: Tuple[int, int], tabuleiro) -> np.ndarray:
         """Extrai features da célula"""
@@ -170,5 +190,6 @@ class Agente:
         
         elif tipo == TIPO_BANDEIRA:
             resultado['evento'] = 'bandeira'
+            resultado['vitoria'] = True 
         
         return resultado

@@ -116,6 +116,19 @@ class Simulador:
             grupos.append(grupo)
             print(f"Grupo {num_grupo} criado com {len(agentes)} agentes")
         
+        # ✅ OPÇÃO 1: APENAS ABORDAGEM B - Marcar bombas como exploradas
+        if self.abordagem == ABORDAGEM_B:
+            print(f"\n🎯 ABORDAGEM B: Marcando bombas como exploradas...")
+            num_bombas_marcadas = 0
+            
+            for grupo in grupos:
+                for bomba_pos in self.tabuleiro.posicoes_bombas:
+                    grupo.conhecimento.celulas_exploradas.add(bomba_pos)
+                    num_bombas_marcadas += 1
+                
+                print(f"   Grupo {grupo.numero}: {len(self.tabuleiro.posicoes_bombas)} bombas pré-marcadas")
+                print(f"   Células exploradas iniciais: {len(grupo.conhecimento.celulas_exploradas)}")
+        
         return grupos
     
     def executar(self) -> Dict:
@@ -206,11 +219,11 @@ class Simulador:
                         print(f"  Grupo {grupo.numero} Agente {agente.id}: PRESO em {agente.posicao}")
                     continue
             else:
-                # ✅ Se agente voltou a ter candidatas, remover do set de parados
+                # Se agente voltou a ter candidatas, remover do set de parados
                 agente_id = (grupo.numero, agente.id)
                 self.agentes_parados_reportados.discard(agente_id)
             
-            proxima = agente.decidir_proxima_celula(candidatas, self.tabuleiro)
+            proxima = agente.decidir_proxima_celula(candidatas, self.tabuleiro, self.abordagem)
             if not proxima:
                 eventos.append({
                     'tipo': 'sem_movimento',
@@ -225,8 +238,18 @@ class Simulador:
             agente.mover(proxima)
             tipo = self.tabuleiro.obter_tipo(proxima)
             resultado = agente.processar_celula(tipo, self.tabuleiro)
+
+            # VERIFICAR VITÓRIA IMEDIATA (BANDEIRA)
+            if resultado.get('vitoria'):
+                self.completo = True
+                self.sucesso = True
+                self.grupo_vencedor = grupo.numero
+                self.razao = f"Grupo {grupo.numero} encontrou a bandeira!"
+                print(f"\n🏁 VITÓRIA! Grupo {grupo.numero} encontrou a bandeira em {proxima}!")
+                return
             
-            # ✅ NOVO: Registrar evento de movimento
+
+            #  Registrar evento de movimento
             evento = {
                 'tipo': 'movimento',
                 'grupo': grupo.numero,
@@ -325,10 +348,13 @@ class Simulador:
         # Abordagem B: Exploração completa
         elif self.abordagem == ABORDAGEM_B:
             total_celulas = TAMANHO_TABULEIRO * TAMANHO_TABULEIRO
+            num_bombas = len(self.tabuleiro.posicoes_bombas)
             
             # ✅ DEBUG
             print(f"\n🔍 DEBUG Abordagem B:")
             print(f"   Total células no tabuleiro: {total_celulas}")
+            print(f"   Bombas pré-marcadas: {num_bombas}")
+            print(f"   Células a explorar: {total_celulas - num_bombas}")
             
             for grupo in self.grupos:
                 # ✅ VALIDAÇÃO: Deve ter pelo menos 1 agente vivo
