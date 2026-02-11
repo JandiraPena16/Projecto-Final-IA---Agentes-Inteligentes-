@@ -81,7 +81,7 @@ def simular_tempo_real():
 
 @app.route('/proximo_passo', methods=['POST'])
 def proximo_passo():
-    """✅ ATUALIZADO: Executa próximo passo da simulação"""
+    """ ATUALIZADO: Executa próximo passo da simulação"""
     global SIMULACAO_ATUAL
     
     if not SIMULACAO_ATUAL:
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     carregar_modelos()
     
     print("\n" + "="*60)
-    print("🚀 SERVIDOR INICIADO (MODO TEMPO REAL)")
+    print(" SERVIDOR INICIADO (MODO TEMPO REAL)")
     print("="*60)
     print(f"URL: http://localhost:{PORTA}")
     print("="*60 + "\n")

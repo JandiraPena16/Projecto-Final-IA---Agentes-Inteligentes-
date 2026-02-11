@@ -41,7 +41,7 @@ class Simulador:
         self.grupos = self._criar_grupos(config)
         print(f"Grupos criados: {len(self.grupos)}")
         
-        # ✅ NOVO: Guardar total de tesouros inicial (fixo)
+        # Guardar total de tesouros inicial (fixo)
         self.total_tesouros_inicial = len(self.tabuleiro.posicoes_tesouros)
         print(f"Total de tesouros no tabuleiro: {self.total_tesouros_inicial}")
         
@@ -51,14 +51,14 @@ class Simulador:
         self.razao = ""
         self.tempo_inicio = None
         self.tempo_fim = None
-        self.grupo_vencedor = None  # ✅ NOVO: rastrear grupo vencedor
+        self.grupo_vencedor = None  # rastrear grupo vencedor
     
     def _criar_grupos(self, config: Dict) -> List[Grupo]:
         """Cria os 3 grupos"""
         print("\n=== CRIAR GRUPOS ===")
         grupos = []
         
-        # ✅ CORREÇÃO: Todos agentes começam em (0,0)
+        # Todos agentes começam em (0,0)
         # Garantir que (0,0) seja livre
         if self.tabuleiro.matriz[0][0] != TIPO_LIVRE:
             # Se (0,0) não for livre, trocar com uma posição livre
@@ -84,7 +84,7 @@ class Simulador:
                     break
         
         posicao_inicial = (0, 0)
-        print(f"✅ Posição inicial confirmada: {posicao_inicial}")
+        print(f" Posição inicial confirmada: {posicao_inicial}")
         
         for num_grupo in [1, 2, 3]:
             print(f"\n--- Grupo {num_grupo} ---")
@@ -108,15 +108,15 @@ class Simulador:
             
             grupo = Grupo(num_grupo, agentes)
             
-            # ✅ CRÍTICO: Registrar posição inicial (0,0) no conhecimento do grupo
+            # Registrar posição inicial (0,0) no conhecimento do grupo
             tipo_inicial = self.tabuleiro.obter_tipo(posicao_inicial)
             grupo.conhecimento.registrar(tipo_inicial, posicao_inicial)
-            print(f"✅ Posição inicial {posicao_inicial} registrada para Grupo {num_grupo}")
+            print(f" Posição inicial {posicao_inicial} registrada para Grupo {num_grupo}")
             
             grupos.append(grupo)
             print(f"Grupo {num_grupo} criado com {len(agentes)} agentes")
         
-        # ✅ OPÇÃO 1: APENAS ABORDAGEM B - Marcar bombas como exploradas
+        # OPÇÃO 1: APENAS ABORDAGEM B - Marcar bombas como exploradas
         if self.abordagem == ABORDAGEM_B:
             print(f"\n🎯 ABORDAGEM B: Marcando bombas como exploradas...")
             num_bombas_marcadas = 0
@@ -170,15 +170,15 @@ class Simulador:
         if self.passo == 1:
             print(f"\nGrupo {grupo.numero}: {len(agentes_vivos)} agentes vivos")
         
-        # ✅ DEBUG: Log se grupo não tem agentes vivos
+        #  DEBUG: Log se grupo não tem agentes vivos
         if not agentes_vivos:
             if self.passo % 10 == 0:  # Log a cada 10 passos
                 print(f"  Grupo {grupo.numero}: todos os agentes mortos")
             return
         
-        eventos = []  # ✅ NOVO: Registrar eventos para logs
+        eventos = []  #   Registrar eventos para logs
         
-        # ✅ NOVO: Rastrear quais agentes já foram reportados como parados
+        # Rastrear quais agentes já foram reportados como parados
         if not hasattr(self, 'agentes_parados_reportados'):
             self.agentes_parados_reportados = set()
         
@@ -187,7 +187,7 @@ class Simulador:
             
             todas_visitadas = agente.celulas_visitadas | grupo.conhecimento.celulas_exploradas
             
-            # ✅ NOVO: Passar histórico recente para evitar loops
+            # Passar histórico recente para evitar loops
             candidatas = bfs.obter_candidatas(
                 agente.posicao, 
                 todas_visitadas, 
@@ -195,16 +195,16 @@ class Simulador:
                 agente.historico  # Últimas posições
             )
             
-            # ✅ NOVO: Se não há candidatas adjacentes, tentar busca expandida
+            #  Se não há candidatas adjacentes, tentar busca expandida
             if not candidatas:
                 candidatas = self._busca_expandida(agente.posicao, todas_visitadas, grupo.numero)
                 
-                # ✅ ANTI-LOOP: Remover próximo passo se for voltar para posição recente
+                #  ANTI-LOOP: Remover próximo passo se for voltar para posição recente
                 if candidatas and len(agente.historico) >= 2:
                     candidatas = [c for c in candidatas if c not in agente.historico[-3:]]
                 
                 if not candidatas:
-                    # ✅ CORRIGIDO: Só reportar "parado" 1 vez por agente
+                    # Só reportar "parado" 1 vez por agente
                     agente_id = (grupo.numero, agente.id)
                     if agente_id not in self.agentes_parados_reportados:
                         self.agentes_parados_reportados.add(agente_id)
@@ -266,16 +266,16 @@ class Simulador:
             
             eventos.append(evento)
         
-        # ✅ NOVO: Armazenar eventos para enviar ao frontend
+        # Armazenar eventos para enviar ao frontend
         if not hasattr(self, 'eventos_passo'):
             self.eventos_passo = []
         
-        # ✅ CORRIGIDO: Acumular eventos de todos os grupos
+        # Acumular eventos de todos os grupos
         self.eventos_passo.extend(eventos)
     
     def _busca_expandida(self, posicao: Tuple[int, int], visitadas: Set, grupo: int, raio: int = 5) -> List[Tuple[int, int]]:
         """
-        ✅ MELHORADO: Busca expandida que PLANEJA rota até células não visitadas
+         Busca expandida que PLANEJA rota até células não visitadas
         - Procura células não visitadas em um raio maior
         - Retorna o PRÓXIMO PASSO no caminho (não a célula distante!)
         """
@@ -295,7 +295,7 @@ class Simulador:
                     visitadas_busca.add(vizinho)
                     novo_caminho = caminho + [vizinho]
                     
-                    # ✅ Se vizinho NÃO foi visitado → encontrou objetivo!
+                    #  Se vizinho NÃO foi visitado → encontrou objetivo!
                     if vizinho not in visitadas:
                         # Verificar se não é bomba conhecida
                         if vizinho not in self.tabuleiro.bombas_desativadas.get(grupo, set()):
@@ -314,7 +314,7 @@ class Simulador:
     
     def _verificar_termino(self):
         """
-        ✅ CORRIGIDO: Verifica condições de término
+        CORRIGIDO: Verifica condições de término
         Só marca vitória quando objetivos realmente alcançados
         """
         # Todos mortos
@@ -326,10 +326,10 @@ class Simulador:
         
         # Abordagem A: >50% tesouros ENCONTRADOS (histórico)
         if self.abordagem == ABORDAGEM_A:
-            # ✅ CORRIGIDO: Usar total FIXO de tesouros do início
+            # CORRIGIDO: Usar total FIXO de tesouros do início
             total_tesouros = self.total_tesouros_inicial
             
-            # ✅ VALIDAÇÃO: Só marcar vitória se pelo menos 1 agente vivo
+            # VALIDAÇÃO: Só marcar vitória se pelo menos 1 agente vivo
             for grupo in self.grupos:
                 if not grupo.pelo_menos_um_vivo():
                     continue  # Grupo morto não pode vencer
@@ -337,7 +337,7 @@ class Simulador:
                 # Total de tesouros ENCONTRADOS pelo grupo (nunca diminui)
                 tesouros_encontrados = self.tabuleiro.tesouros_coletados[grupo.numero]
                 
-                # ✅ VALIDAÇÃO: Deve ter MAIS de 50%, não apenas >=
+                # VALIDAÇÃO: Deve ter MAIS de 50%, não apenas >=
                 if total_tesouros > 0 and tesouros_encontrados > total_tesouros * 0.5:
                     self.completo = True
                     self.sucesso = True
@@ -350,24 +350,24 @@ class Simulador:
             total_celulas = TAMANHO_TABULEIRO * TAMANHO_TABULEIRO
             num_bombas = len(self.tabuleiro.posicoes_bombas)
             
-            # ✅ DEBUG
+            # DEBUG
             print(f"\n🔍 DEBUG Abordagem B:")
             print(f"   Total células no tabuleiro: {total_celulas}")
             print(f"   Bombas pré-marcadas: {num_bombas}")
             print(f"   Células a explorar: {total_celulas - num_bombas}")
             
             for grupo in self.grupos:
-                # ✅ VALIDAÇÃO: Deve ter pelo menos 1 agente vivo
+                # VALIDAÇÃO: Deve ter pelo menos 1 agente vivo
                 vivo = grupo.pelo_menos_um_vivo()
                 celulas_exploradas = len(grupo.conhecimento.celulas_exploradas)
                 
-                # ✅ DEBUG
+                # DEBUG
                 print(f"   Grupo {grupo.numero}: {celulas_exploradas}/{total_celulas} células | Vivo: {vivo}")
                 
                 if not vivo:
                     continue
                 
-                # ✅ VALIDAÇÃO: Deve explorar 100% das células
+                # VALIDAÇÃO: Deve explorar 100% das células
                 if celulas_exploradas >= total_celulas:
                     self.completo = True
                     self.sucesso = True
@@ -379,9 +379,9 @@ class Simulador:
         # Abordagem C: Encontrar bandeira
         elif self.abordagem == ABORDAGEM_C:
             for grupo in self.grupos:
-                # ✅ VALIDAÇÃO: Verificar se realmente encontrou bandeira
+                # VALIDAÇÃO: Verificar se realmente encontrou bandeira
                 if grupo.conhecimento.posicao_bandeira:
-                    # ✅ EXTRA: Validar que a posição é a bandeira real
+                    # EXTRA: Validar que a posição é a bandeira real
                     if grupo.conhecimento.posicao_bandeira == self.tabuleiro.posicao_bandeira:
                         self.completo = True
                         self.sucesso = True
@@ -389,7 +389,7 @@ class Simulador:
                         self.razao = f"Grupo {grupo.numero} encontrou bandeira em {grupo.conhecimento.posicao_bandeira}"
                         return
         
-        # ✅ NOVO: Timeout - se passar de 1000 passos, ninguém vence
+        # Timeout - se passar de 1000 passos, ninguém vence
         if self.passo >= 1000:
             self.completo = True
             self.sucesso = False
@@ -398,7 +398,7 @@ class Simulador:
     
     def obter_estado_atual(self) -> Dict:
         """
-        ✅ ATUALIZADO: Retorna estado atual com eventos para logs detalhados
+        Retorna estado atual com eventos para logs detalhados
         """
         agentes_estado = []
         
@@ -428,10 +428,10 @@ class Simulador:
                 'celulas_exploradas': celulas
             })
         
-        # ✅ NOVO: Incluir eventos do passo
+        #  Incluir eventos do passo
         eventos = getattr(self, 'eventos_passo', [])
         
-        # ✅ NOVO: Calcular tempo decorrido
+        # Calcular tempo decorrido
         tempo_decorrido = 0.0
         if self.tempo_inicio:
             if self.tempo_fim:
@@ -441,7 +441,7 @@ class Simulador:
         
         return {
             'passo': self.passo,
-            'tempo_segundos': tempo_decorrido,  # ✅ ADICIONADO
+            'tempo_segundos': tempo_decorrido,  # ADICIONADO
             'agentes': agentes_estado,
             'grupos': stats_grupos,
             'tabuleiro': self.tabuleiro.exportar_matriz(),
@@ -449,7 +449,7 @@ class Simulador:
             'sucesso': self.sucesso,
             'razao': self.razao,
             'grupo_vencedor': self.grupo_vencedor,
-            'eventos': eventos  # ✅ NOVO: Eventos para logs
+            'eventos': eventos  # : Eventos para logs
         }
     
     def _gerar_resultado(self) -> Dict:
@@ -463,7 +463,7 @@ class Simulador:
             tesouros = sum(a.tesouros_encontrados for a in g.agentes)
             celulas = len(g.conhecimento.celulas_exploradas)
             
-            # ✅ NOVO: Estatísticas detalhadas por agente
+            #  Estatísticas detalhadas por agente
             agentes_detalhes = []
             for agente in g.agentes:
                 agentes_detalhes.append({
@@ -482,7 +482,7 @@ class Simulador:
                 'total': total,
                 'tesouros': tesouros,
                 'celulas_exploradas': celulas,
-                'agentes': agentes_detalhes  # ✅ NOVO
+                'agentes': agentes_detalhes  
             })
             
             print(f"\nGrupo {g.numero} FINAL:")
@@ -493,7 +493,7 @@ class Simulador:
         resultado = {
             'sucesso': self.sucesso,
             'razao': self.razao,
-            'grupo_vencedor': self.grupo_vencedor,  # ✅ NOVO
+            'grupo_vencedor': self.grupo_vencedor,  
             'tempo_segundos': tempo,
             'passos': self.passo,
             'grupos': stats_grupos,
@@ -506,7 +506,7 @@ class Simulador:
     
     def executar_passo(self) -> Dict:
         """
-        ✅ NOVO: Executa um único passo da simulação
+         Executa um único passo da simulação
         Retorna estado atual para animação em tempo real
         """
         if self.completo or self.passo >= 1000:
@@ -517,7 +517,7 @@ class Simulador:
         
         self.passo += 1
         
-        # ✅ NOVO: Limpar eventos do passo anterior
+        #  Limpar eventos do passo anterior
         self.eventos_passo = []
         
         # Executar passo para cada grupo

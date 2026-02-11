@@ -54,7 +54,7 @@ class Agente:
             scores.sort(key=lambda x: x[1], reverse=True)
             return scores[0][0]
         
-        # ✅ SEM ML: Usar heurística baseada em visão
+        # SEM ML: Usar heurística baseada em visão
         # Agora TODOS os agentes veem o que tem ao redor!
         scores = []
         for celula in candidatas:
@@ -155,7 +155,7 @@ class Agente:
         self.celulas_visitadas.add(nova_posicao)
         self.historico.append(nova_posicao)
         
-        # ✅ NOVO: Manter apenas últimas 10 posições (evitar memória infinita)
+        # Manter apenas últimas 10 posições (evitar memória infinita)
         if len(self.historico) > 10:
             self.historico = self.historico[-10:]
         
@@ -165,7 +165,7 @@ class Agente:
         """Processa interação com célula"""
         resultado = {'tipo': tipo, 'sobreviveu': True, 'evento': None}
         
-        # ✅ CRÍTICO: Registrar TODAS as células exploradas (inclusive livres)
+        # Registrar TODAS as células exploradas (inclusive livres)
         self.conhecimento_grupo.registrar(tipo, self.posicao)
         
         if tipo == TIPO_LIVRE:

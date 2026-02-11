@@ -108,7 +108,7 @@ class Tabuleiro:
     
     def desativar_bomba(self, posicao: Tuple[int, int], grupo: int):
         """
-        ✅ CORRIGIDO: Desativa bomba APENAS para o grupo
+        - Desativa bomba APENAS para o grupo
         - Bomba permanece no tabuleiro global
         - Mas fica registrada como desativada para esse grupo específico
         """
@@ -119,7 +119,7 @@ class Tabuleiro:
     
     def coletar_tesouro(self, posicao: Tuple[int, int], grupo: int):
         """
-        ✅ CORRIGIDO: Remove tesouro do tabuleiro quando coletado
+        Remove tesouro do tabuleiro quando coletado
         Tesouros só podem ser encontrados uma vez
         """
         if posicao in self.posicoes_tesouros:
