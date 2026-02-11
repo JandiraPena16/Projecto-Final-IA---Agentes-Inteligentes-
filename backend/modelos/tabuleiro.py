@@ -51,6 +51,17 @@ class Tabuleiro:
         self.bombas_desativadas = {1: set(), 2: set(), 3: set()}
         self.tesouros_coletados = {1: 0, 2: 0, 3: 0}
         
+        # Rastrear quais grupos ja coletaram cada tesouro
+        # Estrutura: { posicao: set(grupos_que_ja_coletaram) }
+        self.tesouros_coletados_por_grupo = {}
+        
+        # Rastrear quais grupos ja pisaram em cada bomba
+        # Estrutura: { posicao: set(grupos_que_ja_pisaram) }
+        self.bombas_pisadas_por_grupo = {}
+        
+        # Guardar total inicial de tesouros (nunca muda)
+        self.posicoes_tesouros_iniciais = set(self.posicoes_tesouros)
+        
         # Verificar resolubilidade
         if not self._verificar_resolubilidade():
             self.__init__(percentagem_bombas, usar_bandeira)
@@ -106,35 +117,84 @@ class Tabuleiro:
         """Marca célula como explorada"""
         self.celulas_exploradas[grupo].add(posicao)
     
+    def grupo_ja_pisou_bomba(self, posicao: Tuple[int, int], grupo: int) -> bool:
+        """Verifica se este grupo ja pisou na bomba nesta posicao"""
+        grupos_que_pisaram = self.bombas_pisadas_por_grupo.get(posicao, set())
+        return grupo in grupos_que_pisaram
+
     def desativar_bomba(self, posicao: Tuple[int, int], grupo: int):
         """
-        - Desativa bomba APENAS para o grupo
-        - Bomba permanece no tabuleiro global
-        - Mas fica registrada como desativada para esse grupo específico
+        NOVA LOGICA:
+        - Regista que este grupo pisou na bomba (perde imunidade)
+        - A bomba so desaparece do tabuleiro quando os 3 grupos pisaram
+        - Para o grupo que pisou, a bomba fica em bombas_desativadas (evita voltar)
+        - A logica de evitar bombas no BFS nao muda
         """
+        # Registar que este grupo pisou
+        if posicao not in self.bombas_pisadas_por_grupo:
+            self.bombas_pisadas_por_grupo[posicao] = set()
+
+        self.bombas_pisadas_por_grupo[posicao].add(grupo)
+
+        # Para este grupo, marcar como desativada (nao volta a pisar)
         self.bombas_desativadas[grupo].add(posicao)
-        
-        # Não remover da matriz global - outros grupos ainda veem como bomba
-        # Apenas registrar que este grupo a desativou
-    
-    def coletar_tesouro(self, posicao: Tuple[int, int], grupo: int):
-        """
-        Remove tesouro do tabuleiro quando coletado
-        Tesouros só podem ser encontrados uma vez
-        """
-        if posicao in self.posicoes_tesouros:
-            # Remover tesouro do conjunto
-            self.posicoes_tesouros.discard(posicao)
-            
-            # Transformar célula em LIVRE
+
+        print(f"  Bomba em {posicao}: grupo {grupo} pisou. "
+              f"Grupos que ja pisaram: {self.bombas_pisadas_por_grupo[posicao]}")
+
+        # So remove do tabuleiro quando os 3 grupos pisaram
+        grupos_que_pisaram = self.bombas_pisadas_por_grupo[posicao]
+        if len(grupos_que_pisaram) >= 3:
+            self.posicoes_bombas.discard(posicao)
             x, y = posicao
             self.matriz[x][y] = TIPO_LIVRE
-            
-            # Incrementar contador do grupo
-            self.tesouros_coletados[grupo] += 1
-            
-            return True
-        return False
+            print(f"  Bomba em {posicao} REMOVIDA do tabuleiro (3 grupos pisaram)")
+    
+    def grupo_ja_coletou_tesouro(self, posicao: Tuple[int, int], grupo: int) -> bool:
+        """Verifica se este grupo já coletou o tesouro nesta posição"""
+        grupos_que_coletaram = self.tesouros_coletados_por_grupo.get(posicao, set())
+        return grupo in grupos_que_coletaram
+    
+    def coletar_tesouro(self, posicao: Tuple[int, int], grupo: int) -> bool:
+        """
+        NOVA LOGICA:
+        - Cada grupo pode coletar o tesouro UMA vez (ganha imunidade)
+        - O tesouro so desaparece do tabuleiro quando os 3 grupos o coletaram
+        - Se o grupo ja coletou este tesouro antes, nao faz nada
+        
+        Retorna True se este grupo coletou agora, False se ja tinha coletado
+        """
+        # Verificar se o tesouro ainda existe no tabuleiro OU se ja foi coletado por algum grupo
+        # (pode estar como LIVRE no tabuleiro mas ainda nao coletado pelos 3 grupos)
+        posicao_conhecida = (posicao in self.posicoes_tesouros or
+                             posicao in self.tesouros_coletados_por_grupo)
+        
+        if not posicao_conhecida:
+            return False
+        
+        # Verificar se este grupo ja coletou
+        if self.grupo_ja_coletou_tesouro(posicao, grupo):
+            return False
+        
+        # Registar que este grupo coletou
+        if posicao not in self.tesouros_coletados_por_grupo:
+            self.tesouros_coletados_por_grupo[posicao] = set()
+        
+        self.tesouros_coletados_por_grupo[posicao].add(grupo)
+        self.tesouros_coletados[grupo] += 1
+        
+        print(f"  Tesouro em {posicao}: grupo {grupo} coletou. "
+              f"Grupos que ja coletaram: {self.tesouros_coletados_por_grupo[posicao]}")
+        
+        # So remove do tabuleiro quando os 3 grupos coletaram
+        grupos_que_coletaram = self.tesouros_coletados_por_grupo[posicao]
+        if len(grupos_que_coletaram) >= 3:
+            self.posicoes_tesouros.discard(posicao)
+            x, y = posicao
+            self.matriz[x][y] = TIPO_LIVRE
+            print(f"  Tesouro em {posicao} REMOVIDO do tabuleiro (3 grupos coletaram)")
+        
+        return True
     
     def exportar_matriz(self):
         """Retorna cópia da matriz"""

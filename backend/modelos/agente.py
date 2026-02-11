@@ -173,9 +173,15 @@ class Agente:
         
         elif tipo == TIPO_BOMBA:
             if self.imunidades > 0:
-                self.imunidades -= 1
-                tabuleiro.desativar_bomba(self.posicao, self.grupo)
-                resultado['evento'] = 'bomba_desativada'
+                # Verificar se este grupo ja pisou nesta bomba antes
+                if not tabuleiro.grupo_ja_pisou_bomba(self.posicao, self.grupo):
+                    self.imunidades -= 1
+                    tabuleiro.desativar_bomba(self.posicao, self.grupo)
+                    resultado['evento'] = 'bomba_desativada'
+                else:
+                    # Grupo ja pisou, bomba ja esta desativada para este grupo
+                    # Nao perde imunidade, trata como livre
+                    resultado['evento'] = 'livre'
             else:
                 self.vivo = False
                 self.bombas_acionadas += 1
@@ -183,10 +189,15 @@ class Agente:
                 resultado['evento'] = 'morte'
         
         elif tipo == TIPO_TESOURO:
-            self.imunidades += 1
-            self.tesouros_encontrados += 1
-            tabuleiro.coletar_tesouro(self.posicao, self.grupo)
-            resultado['evento'] = 'tesouro'
+            # Verificar se este grupo ja coletou este tesouro antes
+            if not tabuleiro.grupo_ja_coletou_tesouro(self.posicao, self.grupo):
+                self.imunidades += 1
+                self.tesouros_encontrados += 1
+                tabuleiro.coletar_tesouro(self.posicao, self.grupo)
+                resultado['evento'] = 'tesouro'
+            else:
+                # Grupo ja coletou este tesouro, trata como celula livre
+                resultado['evento'] = 'livre'
         
         elif tipo == TIPO_BANDEIRA:
             resultado['evento'] = 'bandeira'
